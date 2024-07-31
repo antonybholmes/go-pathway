@@ -8,20 +8,20 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/antonybholmes/go-dna"
+	"github.com/antonybholmes/go-sys"
 	"github.com/rs/zerolog/log"
 )
 
-const PATHWAY_SQL = "SELECT name, genes FROM pathways ORDER BY name"
+const PATHWAY_SQL = "SELECT db, name, genes FROM pathways ORDER BY name"
 
 type Pathway struct {
-	name  string
-	genes []string
+	Name  string
+	Genes sys.Set[string]
 }
 
 type PathwayCollection struct {
-	name     string
-	genesets []*Pathway
+	Name     string
+	Genesets []*Pathway
 }
 
 type PathwayDBCache struct {
@@ -97,134 +97,51 @@ func NewPathwayDB(file string) *PathwayDB {
 	return &PathwayDB{file}
 }
 
-func (pathwaydb *PathwayDB) Pathways() (PathwayCollection, error) {
+func (pathwaydb *PathwayDB) Pathways() (*PathwayCollection, error) {
 
-	rows, err := pathwaydb.withinGeneStmt.Query(
-		mid,
-		level,
-		location.Chr,
-		location.Start,
-		location.End)
+	db, err := sql.Open("sqlite3", pathwaydb.file)
 
 	if err != nil {
 		return nil, err //fmt.Errorf("there was an error with the database query")
 	}
 
-	return rowsToRecords(location, rows, level)
-}
+	defer db.Close()
 
-func (genedb *PathwayDB) WithinGenesAndPromoter(location *dna.Location, level Level, pad uint) (*GenomicFeatures, error) {
-	mid := (location.Start + location.End) / 2
-
-	// rows, err := genedb.withinGeneAndPromStmt.Query(
-	// 	mid,
-	// 	level,
-	// 	location.Chr,
-	// 	pad,
-	// 	location.Start,
-	// 	pad,
-	// 	location.Start,
-	// 	pad,
-	// 	location.End,
-	// 	pad,
-	// 	location.End)
-
-	rows, err := genedb.withinGeneAndPromStmt.Query(
-		mid,
-		level,
-		location.Chr,
-		location.Start,
-		location.End,
-		pad)
+	rows, err := db.Query(PATHWAY_SQL)
 
 	if err != nil {
-		return nil, err //fmt.Errorf("there was an error with the database query")
+		return nil, err
 	}
 
-	return rowsToRecords(location, rows, level)
-}
-
-func (genedb *PathwayDB) InExon(location *dna.Location, geneId string) (*GenomicFeatures, error) {
-	mid := (location.Start + location.End) / 2
-
-	// rows, err := genedb.inExonStmt.Query(
-	// 	mid,
-	// 	geneId,
-	// 	location.Chr,
-	// 	location.Start,
-	// 	location.Start,
-	// 	location.End,
-	// 	location.End)
-
-	rows, err := genedb.inExonStmt.Query(
-		mid,
-		geneId,
-		location.Chr,
-		location.Start,
-		location.End)
-
-	if err != nil {
-		return nil, err //fmt.Errorf("there was an error with the database query")
-	}
-
-	return rowsToRecords(location, rows, LEVEL_EXON)
-}
-
-func (genedb *PathwayDB) ClosestGenes(location *dna.Location, n uint16, level Level) (*GenomicFeatures, error) {
-	mid := (location.Start + location.End) / 2
-
-	// rows, err := genedb.closestGeneStmt.Query(mid,
-	// 	level,
-	// 	location.Chr,
-	// 	mid,
-	// 	n)
-
-	rows, err := genedb.closestGeneStmt.Query(mid,
-		level,
-		location.Chr,
-		n)
-
-	if err != nil {
-		return nil, err //fmt.Errorf("there was an error with the database query")
-	}
-
-	return rowsToRecords(location, rows, level)
-}
-
-func rowsToRecords(location *dna.Location, rows *sql.Rows, level Level) (*GenomicFeatures, error) {
 	defer rows.Close()
 
-	var id uint
-	var chr string
-	var start uint
-	var end uint
-	var strand string
-	var geneId string
-	var geneSymbol string
-	var d int
-
-	// 10 seems a reasonable guess for the number of features we might see, just
-	// to reduce slice reallocation
-	var features = make([]*GenomicFeature, 0, 10)
+	var ret PathwayCollection
+	var database string
+	var genes string
+	ret.Genesets = make([]*Pathway, 0, 5)
 
 	for rows.Next() {
-		err := rows.Scan(&id, &chr, &start, &end, &strand, &geneId, &geneSymbol, &d)
+		var pathway Pathway
+
+		//gene.Taxonomy = tax
+
+		err := rows.Scan(
+			&database,
+			&pathway.Name,
+			&genes)
 
 		if err != nil {
-			return nil, err //fmt.Errorf("there was an error with the database records")
+			return nil, err
 		}
 
-		location = dna.NewLocation(chr, start, end)
+		for _, gene := range strings.Split(genes, ",") {
+			pathway.Genes.Add(gene)
+		}
 
-		feature := GenomicFeature{Id: id,
-			Location:   location,
-			Strand:     strand,
-			GeneId:     geneId,
-			GeneSymbol: geneSymbol,
-			TssDist:    d}
-
-		features = append(features, &feature)
+		ret.Genesets = append(ret.Genesets, &pathway)
 	}
 
-	return &GenomicFeatures{Location: location, Level: level.String(), Features: features}, nil
+	ret.Name = database
+
+	return &ret, nil
 }
