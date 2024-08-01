@@ -2,6 +2,7 @@ package genes
 
 import (
 	"database/sql"
+	"math"
 	"sort"
 	"strings"
 
@@ -18,13 +19,31 @@ const GENES_IN_UNIVERSE = 45956
 const PATHWAY_SQL = "SELECT db, name, genes FROM pathways ORDER BY name"
 
 type Pathway struct {
-	Name  string          `json:"name"`
-	Genes sys.Set[string] `json:"genes"`
+	Name  string           `json:"name"`
+	Genes *sys.Set[string] `json:"genes"`
+}
+
+func NewPathway(name string) *Pathway {
+	p := Pathway{
+		Name:  name,
+		Genes: sys.NewSet[string](),
+	}
+
+	return &p
 }
 
 type PathwayCollection struct {
 	Name     string     `json:"name"`
 	Genesets []*Pathway `json:"pathways"`
+}
+
+func NewPathwayCollection(name string) *PathwayCollection {
+	p := PathwayCollection{
+		Name:     name,
+		Genesets: make([]*Pathway, 0, 100),
+	}
+
+	return &p
 }
 
 type PathwayDBCache struct {
@@ -149,35 +168,55 @@ func (pathwaydb *PathwayDB) Pathways() (*PathwayCollection, error) {
 	return &ret, nil
 }
 
-type PathwayTestResult struct {
-	Name            string   `json:"name"`
-	Collection      string   `json:"collection"`
-	Geneset         string   `json:"geneset"`
-	TestGenes       uint64   `json:"testGenes"`
-	PathwayGenes    uint64   `json:"pathwayGenes"`
-	OverlapGenes    uint64   `json:"overlapGenes"`
-	N               uint64   `json:"n"`
-	KDivN           float64  `json:"kdivn"`
-	P               float64  `json:"p"`
-	Q               float64  `json:"q"`
-	Pathways        uint64   `json:"pathways"`
-	OverlapGeneList []string `json:"overlapGeneList"`
+type PathwayTests struct {
+	Name            []string  `json:"name"`
+	Collection      []string  `json:"collection"`
+	Geneset         []string  `json:"geneset"`
+	TestGenes       []uint64  `json:"testGenes"`
+	PathwayGenes    []uint64  `json:"pathwayGenes"`
+	OverlapGenes    []uint64  `json:"overlapGenes"`
+	N               []uint64  `json:"n"`
+	KDivN           []float64 `json:"kdivn"`
+	P               []float64 `json:"p"`
+	Q               []float64 `json:"-"`
+	Log10Q          []float64 `json:"log10q"`
+	OverlapGeneList []string  `json:"overlapGeneList"`
 }
 
-func Test(testPathway *Pathway, pathways *PathwayCollection) ([]*PathwayTestResult, error) {
+func NewPathwayTests(pathways *PathwayCollection) *PathwayTests {
+	n := len(pathways.Genesets)
+	ret := PathwayTests{
+		Name:            make([]string, n),
+		Collection:      make([]string, n),
+		Geneset:         make([]string, n),
+		TestGenes:       make([]uint64, n),
+		PathwayGenes:    make([]uint64, n),
+		OverlapGenes:    make([]uint64, n),
+		N:               make([]uint64, n),
+		KDivN:           make([]float64, n),
+		P:               make([]float64, n),
+		Q:               make([]float64, n),
+		Log10Q:          make([]float64, n),
+		OverlapGeneList: make([]string, n),
+	}
 
-	n := uint64(len(testPathway.Genes))
+	return &ret
+}
 
-	ret := make([]*PathwayTestResult, 0, 100)
+func Test(testPathway *Pathway, pathways *PathwayCollection) (*PathwayTests, error) {
 
-	for _, geneset := range pathways.Genesets {
-		K := uint64(len(geneset.Genes))
+	n := uint64(len(*testPathway.Genes))
+
+	ret := NewPathwayTests(pathways)
+
+	for gi, geneset := range pathways.Genesets {
+		K := uint64(len(*geneset.Genes))
 
 		overlappingGeneSet := testPathway.Genes.Intersect(geneset.Genes)
 
-		overlappingGenes := make([]string, 0, len(overlappingGeneSet))
+		overlappingGenes := make([]string, 0, len(*overlappingGeneSet))
 
-		for k := range overlappingGeneSet {
+		for k := range *overlappingGeneSet {
 			overlappingGenes = append(overlappingGenes, k)
 		}
 
@@ -195,19 +234,39 @@ func Test(testPathway *Pathway, pathways *PathwayCollection) ([]*PathwayTestResu
 			p = 1 - basemath.HypGeomCDF(k-1, GENES_IN_UNIVERSE, K, n)
 		}
 
-		result := PathwayTestResult{Name: testPathway.Name,
-			Collection:      pathways.Name,
-			Geneset:         geneset.Name,
-			TestGenes:       n,
-			PathwayGenes:    K,
-			OverlapGenes:    k,
-			N:               GENES_IN_UNIVERSE,
-			P:               p,
-			KDivN:           kDivN,
-			OverlapGeneList: overlappingGenes}
+		ret.Name[gi] = testPathway.Name
+		ret.Collection[gi] = pathways.Name
+		ret.Geneset[gi] = geneset.Name
+		ret.TestGenes[gi] = n
+		ret.PathwayGenes[gi] = K
+		ret.OverlapGenes[gi] = k
+		ret.N[gi] = GENES_IN_UNIVERSE
+		ret.P[gi] = p
+		ret.KDivN[gi] = kDivN
+		ret.OverlapGeneList[gi] = strings.Join(overlappingGenes, ",")
 
-		ret = append(ret, &result)
+	}
 
+	// fdr
+	idx := sys.Argsort(ret.P)
+
+	qn := float64(len(idx))
+
+	ret.Q[0] = math.Min(1, math.Max(0, ret.P[0]*qn))
+
+	for c := 1; c < len(idx); c++ {
+		rank := float64(c + 1)
+		var q float64 = (ret.P[idx[c]] * qn) / rank
+
+		ret.Q[c] = math.Min(
+			1,
+			math.Max(0, math.Max(ret.Q[idx[c-1]], q)),
+		)
+
+	}
+
+	for c := range idx {
+		ret.Log10Q[c] = -math.Log10(ret.Q[c])
 	}
 
 	return ret, nil
