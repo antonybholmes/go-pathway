@@ -2,12 +2,10 @@ package genes
 
 import (
 	"database/sql"
+	"fmt"
 	"math"
 	"sort"
 	"strings"
-
-	"os"
-	"path/filepath"
 
 	"github.com/antonybholmes/go-basemath"
 	"github.com/antonybholmes/go-sys"
@@ -16,9 +14,11 @@ import (
 
 const GENES_IN_UNIVERSE = 45956
 
-const PATHWAY_SQL = "SELECT db, name, genes FROM pathways ORDER BY name"
+const DATASET_SQL = "SELECT DISTINCT dataset FROM pathway ORDER BY dataset"
 
-type Pathway struct {
+const PATHWAY_SQL = "SELECT dataset, name, genes FROM pathway WHERE dataset IN (<in>) ORDER BY name"
+
+type Pathway = struct {
 	Name  string           `json:"name"`
 	Genes *sys.Set[string] `json:"genes"`
 }
@@ -30,6 +30,18 @@ func NewPathway(name string) *Pathway {
 	}
 
 	return &p
+}
+
+type Geneset struct {
+	Name  string   `json:"name"`
+	Genes []string `json:"genes"`
+}
+
+func (geneset Geneset) ToPathway() *Pathway {
+	p := NewPathway(geneset.Name)
+	p.Genes.UpdateList(geneset.Genes)
+
+	return p
 }
 
 type PathwayCollection struct {
@@ -44,64 +56,6 @@ func NewPathwayCollection(name string) *PathwayCollection {
 	}
 
 	return &p
-}
-
-type PathwayDBCache struct {
-	dir      string
-	cacheMap map[string]*PathwayDB
-}
-
-func NewPathwayDBCache(dir string) *PathwayDBCache {
-	cacheMap := make(map[string]*PathwayDB)
-
-	files, err := os.ReadDir(dir)
-
-	log.Debug().Msgf("---- genedb ----")
-
-	if err != nil {
-		log.Fatal().Msgf("error opening %s", dir)
-	}
-
-	log.Debug().Msgf("caching gene databases in %s...", dir)
-
-	for _, file := range files {
-		basename := file.Name()
-
-		if strings.HasSuffix(basename, ".db") {
-
-			name := strings.TrimSuffix(basename, filepath.Ext(basename))
-			db := NewPathwayDB(filepath.Join(dir, basename))
-			cacheMap[name] = db
-
-			log.Debug().Msgf("found gene database %s", name)
-		}
-	}
-
-	log.Debug().Msgf("---- end ----")
-
-	return &PathwayDBCache{dir, cacheMap}
-}
-
-func (cache *PathwayDBCache) Dir() string {
-	return cache.dir
-}
-
-func (cache *PathwayDBCache) List() []string {
-
-	ids := make([]string, 0, len(cache.cacheMap))
-
-	for id := range cache.cacheMap {
-		ids = append(ids, id)
-	}
-
-	sort.Strings(ids)
-
-	return ids
-}
-
-func (cache *PathwayDBCache) PathwayDB(name string) (*PathwayDB, error) {
-
-	return cache.cacheMap[name], nil
 }
 
 // func (cache *PathwayDBCache) Close() {
@@ -119,7 +73,7 @@ func NewPathwayDB(file string) *PathwayDB {
 	return &PathwayDB{file}
 }
 
-func (pathwaydb *PathwayDB) Pathways() (*PathwayCollection, error) {
+func (pathwaydb *PathwayDB) Datasets() (*[]string, error) {
 
 	db, err := sql.Open("sqlite3", pathwaydb.file)
 
@@ -129,7 +83,7 @@ func (pathwaydb *PathwayDB) Pathways() (*PathwayCollection, error) {
 
 	defer db.Close()
 
-	rows, err := db.Query(PATHWAY_SQL)
+	rows, err := db.Query(DATASET_SQL)
 
 	if err != nil {
 		return nil, err
@@ -137,33 +91,89 @@ func (pathwaydb *PathwayDB) Pathways() (*PathwayCollection, error) {
 
 	defer rows.Close()
 
+	ret := make([]string, 0, 5)
+
+	for rows.Next() {
+		var dataset string
+
+		err := rows.Scan(&dataset)
+
+		if err != nil {
+			return nil, err
+		}
+
+		ret = append(ret, dataset)
+	}
+
+	return &ret, nil
+}
+
+func (pathwaydb *PathwayDB) MakePathwayCollection(datasets []string) (*PathwayCollection, error) {
+
+	db, err := sql.Open("sqlite3", pathwaydb.file)
+
+	if err != nil {
+		return nil, err //fmt.Errorf("there was an error with the database query")
+	}
+
+	defer db.Close()
+
+	log.Debug().Msgf("%v", fmt.Sprintf("'%s'", strings.Join(datasets, "','")))
+
+	args := make([]interface{}, len(datasets))
+	inRHS := make([]string, len(datasets))
+
+	for i := range inRHS {
+		args[i] = datasets[i]
+		inRHS[i] = "?"
+	}
+
+	sql := strings.Replace(PATHWAY_SQL, "<in>", strings.Join(inRHS, ","), 1)
+
+	log.Debug().Msgf("%v %v", sql, args)
+
+	rows, err := db.Query(sql, args...)
+
+	if err != nil {
+		log.Debug().Msgf("e %s", err)
+		return nil, err
+	}
+
+	defer rows.Close()
+
 	var ret PathwayCollection
-	var database string
+	var name string
+	var dataset string
 	var genes string
 	ret.Genesets = make([]*Pathway, 0, 5)
 
+	log.Debug().Msgf("herer")
+
 	for rows.Next() {
-		var pathway Pathway
 
 		//gene.Taxonomy = tax
 
 		err := rows.Scan(
-			&database,
-			&pathway.Name,
+			&dataset,
+			&name,
 			&genes)
 
 		if err != nil {
 			return nil, err
 		}
 
+		pathway := NewPathway(name)
+
 		for _, gene := range strings.Split(genes, ",") {
 			pathway.Genes.Add(gene)
 		}
 
-		ret.Genesets = append(ret.Genesets, &pathway)
+		ret.Genesets = append(ret.Genesets, pathway)
 	}
 
-	ret.Name = database
+	ret.Name = dataset
+
+	//log.Debug().Msgf("%v", ret)
 
 	return &ret, nil
 }
@@ -209,6 +219,8 @@ func Test(testPathway *Pathway, pathways *PathwayCollection) (*PathwayTests, err
 
 	ret := NewPathwayTests(pathways)
 
+	log.Debug().Msgf("pathway step 1 %d", n)
+
 	for gi, geneset := range pathways.Genesets {
 		K := uint64(len(*geneset.Genes))
 
@@ -247,8 +259,12 @@ func Test(testPathway *Pathway, pathways *PathwayCollection) (*PathwayTests, err
 
 	}
 
+	log.Debug().Msgf("pathway step 2")
+
 	// fdr
 	idx := sys.Argsort(ret.P)
+
+	log.Debug().Msgf("pathway step 3 %d", len(ret.P))
 
 	qn := float64(len(idx))
 
@@ -264,6 +280,8 @@ func Test(testPathway *Pathway, pathways *PathwayCollection) (*PathwayTests, err
 		)
 
 	}
+
+	log.Debug().Msgf("pathway step 4")
 
 	for c := range idx {
 		ret.Log10Q[c] = -math.Log10(ret.Q[c])

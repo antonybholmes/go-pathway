@@ -6,25 +6,31 @@ import (
 	pathway "github.com/antonybholmes/go-pathway"
 )
 
-var instance *pathway.PathwayDBCache
+var instance *pathway.PathwayDB
 var once sync.Once
 
-func InitCache(dir string) *pathway.PathwayDBCache {
+func InitCache(file string) *pathway.PathwayDB {
 	once.Do(func() {
-		instance = pathway.NewPathwayDBCache(dir)
+		instance = pathway.NewPathwayDB(file)
 	})
 
 	return instance
 }
 
-func GetInstance() *pathway.PathwayDBCache {
+func GetInstance() *pathway.PathwayDB {
 	return instance
 }
 
-func Dir() string {
-	return instance.Dir()
+func Datasets() (*[]string, error) {
+	return GetInstance().Datasets()
 }
 
-func PathwayDB(assembly string) (*pathway.PathwayDB, error) {
-	return instance.PathwayDB(assembly)
+func Test(testPathway *pathway.Pathway, datasets []string) (*pathway.PathwayTests, error) {
+	pathwayCollection, err := GetInstance().MakePathwayCollection(datasets)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return pathway.Test(testPathway, pathwayCollection)
 }
