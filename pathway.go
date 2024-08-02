@@ -200,50 +200,67 @@ type PathwayTests struct {
 	P            []float64 `json:"p"`
 	Q            []float64 `json:"q"`
 	//Log10Q          []float64 `json:"log10q"`
-	OverlapGeneList []string `json:"overlapGeneList"`
+	OverlapGeneList []string         `json:"overlapGeneList"`
+	Genes           *sys.Set[string] `json:"-"`
+	UsableGenes     *sys.Set[string] `json:"-"`
 }
 
 func NewPathwayTests(geneset *Pathway, datasets []*Dataset) *PathwayTests {
-	var n = 0
+	var numTests = 0
 
 	datasetNames := make([]string, 0, len(datasets))
 
+	genes := sys.NewSet[string]()
+
 	for _, dataset := range datasets {
-		n += len(dataset.Pathways)
+		numTests += len(dataset.Pathways)
 		datasetNames = append(datasetNames, dataset.Name)
+
+		for _, pathway := range dataset.Pathways {
+			genes.Update(pathway.Genes)
+		}
+	}
+
+	usableGenes := sys.NewSet[string]()
+
+	for gene := range *(geneset.Genes) {
+		if genes.Has(gene) {
+			usableGenes.Add(gene)
+		}
 	}
 
 	ret := PathwayTests{
 		Geneset:      geneset.Name,
 		Datasets:     datasetNames,
-		DatasetIdx:   make([]int, n),
-		Pathway:      make([]string, n),
-		GenesetSize:  len(*geneset.Genes),
+		DatasetIdx:   make([]int, numTests),
+		Pathway:      make([]string, numTests),
+		GenesetSize:  len(*usableGenes),
 		N:            GENES_IN_UNIVERSE,
-		PathwayGenes: make([]int, n),
-		OverlapGenes: make([]int, n),
-		KDivN:        make([]float64, n),
-		P:            make([]float64, n),
-		Q:            make([]float64, n),
+		PathwayGenes: make([]int, numTests),
+		OverlapGenes: make([]int, numTests),
+		KDivN:        make([]float64, numTests),
+		P:            make([]float64, numTests),
+		Q:            make([]float64, numTests),
 		//Log10Q:          make([]float64, n),
-		OverlapGeneList: make([]string, n),
+		OverlapGeneList: make([]string, numTests),
+		Genes:           genes,
+		UsableGenes:     usableGenes,
 	}
 
 	return &ret
 }
 
 func Test(geneset *Pathway, datasets []*Dataset) (*PathwayTests, error) {
-
-	n := len(*geneset.Genes)
-
 	ret := NewPathwayTests(geneset, datasets)
+
+	//n := len(*usableGenes)
 
 	gi := 0
 	for di, dataset := range datasets {
 		for _, pathway := range dataset.Pathways {
 			K := len(*pathway.Genes)
 
-			overlappingGeneSet := geneset.Genes.Intersect(pathway.Genes)
+			overlappingGeneSet := ret.UsableGenes.Intersect(pathway.Genes)
 
 			overlappingGenes := make([]string, 0, len(*overlappingGeneSet))
 
@@ -258,11 +275,11 @@ func Test(geneset *Pathway, datasets []*Dataset) (*PathwayTests, error) {
 
 			p := float64(1)
 
-			var kDivN float64 = float64(k) / float64(n)
+			var kDivN float64 = float64(k) / float64(ret.GenesetSize)
 
 			if k > 0 {
 
-				p = 1 - basemath.HypGeomCDF(k-1, GENES_IN_UNIVERSE, K, n)
+				p = 1 - basemath.HypGeomCDF(k-1, GENES_IN_UNIVERSE, K, ret.GenesetSize)
 			}
 
 			//ret.Name[gi] = geneset.Name
