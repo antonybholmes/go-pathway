@@ -21,16 +21,16 @@ func GetInstance() *pathway.PathwayDB {
 	return instance
 }
 
-func Datasets() (*[]string, error) {
+func Datasets() (*[]*pathway.DatasetInfo, error) {
 	return GetInstance().Datasets()
 }
 
 func Test(testPathway *pathway.Pathway, datasets []string) (*pathway.PathwayTests, error) {
-	pathwayCollection, err := GetInstance().MakePathwayCollection(datasets)
+	ds, err := GetInstance().MakeDatasets(datasets)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return pathway.Test(testPathway, pathwayCollection)
+	return pathway.Test(testPathway, ds)
 }
