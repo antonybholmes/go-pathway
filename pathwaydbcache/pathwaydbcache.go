@@ -25,12 +25,12 @@ func Datasets() (*[]*pathway.DatasetInfo, error) {
 	return GetInstance().Datasets()
 }
 
-func Test(testPathway *pathway.Pathway, datasets []string) (*pathway.PathwayTests, error) {
+func Overlap(testPathway *pathway.Pathway, datasets []string) (*pathway.PathwayOverlaps, error) {
 	ds, err := GetInstance().MakeDatasets(datasets)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return pathway.Test(testPathway, ds)
+	return pathway.Overlap(testPathway, ds)
 }

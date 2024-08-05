@@ -187,7 +187,7 @@ func (pathwaydb *PathwayDB) MakeDatasets(datasets []string) ([]*Dataset, error) 
 	return ret, nil
 }
 
-type PathwayTests struct {
+type PathwayOverlaps struct {
 	Geneset      string    `json:"geneset"`
 	Datasets     []string  `json:"datasets"`
 	DatasetIdx   []int     `json:"datasetIdx"`
@@ -205,7 +205,7 @@ type PathwayTests struct {
 	UsableGenes     *sys.Set[string] `json:"-"`
 }
 
-func NewPathwayTests(geneset *Pathway, datasets []*Dataset) *PathwayTests {
+func NewPathwayOverlaps(geneset *Pathway, datasets []*Dataset) *PathwayOverlaps {
 	var numTests = 0
 
 	datasetNames := make([]string, 0, len(datasets))
@@ -229,7 +229,7 @@ func NewPathwayTests(geneset *Pathway, datasets []*Dataset) *PathwayTests {
 		}
 	}
 
-	ret := PathwayTests{
+	ret := PathwayOverlaps{
 		Geneset:      geneset.Name,
 		Datasets:     datasetNames,
 		DatasetIdx:   make([]int, numTests),
@@ -250,8 +250,8 @@ func NewPathwayTests(geneset *Pathway, datasets []*Dataset) *PathwayTests {
 	return &ret
 }
 
-func Test(geneset *Pathway, datasets []*Dataset) (*PathwayTests, error) {
-	ret := NewPathwayTests(geneset, datasets)
+func Overlap(geneset *Pathway, datasets []*Dataset) (*PathwayOverlaps, error) {
+	ret := NewPathwayOverlaps(geneset, datasets)
 
 	//n := len(*usableGenes)
 
