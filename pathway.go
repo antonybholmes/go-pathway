@@ -19,8 +19,8 @@ const DATASET_SQL = "SELECT DISTINCT pathway.dataset, COUNT(pathway.id) FROM pat
 const PATHWAY_SQL = "SELECT pathway.name, pathway.genes FROM pathway WHERE pathway.dataset = ?1 ORDER BY pathway.name"
 
 type Pathway = struct {
-	Name  string           `json:"name"`
 	Genes *sys.Set[string] `json:"genes"`
+	Name  string           `json:"name"`
 }
 
 func NewPathway(name string) *Pathway {
@@ -188,21 +188,20 @@ func (pathwaydb *PathwayDB) MakeDatasets(datasets []string) ([]*Dataset, error) 
 }
 
 type PathwayOverlaps struct {
-	Geneset      string    `json:"geneset"`
-	Datasets     []string  `json:"datasets"`
-	DatasetIdx   []int     `json:"datasetIdx"`
-	Pathway      []string  `json:"pathway"`
-	GenesetSize  int       `json:"n"`
-	N            int       `json:"N"`
-	PathwayGenes []int     `json:"nPathwayGenes"`
-	OverlapGenes []int     `json:"nOverlapGenes"`
-	KDivN        []float64 `json:"kdivn"`
-	P            []float64 `json:"p"`
-	Q            []float64 `json:"q"`
-	//Log10Q          []float64 `json:"log10q"`
-	OverlapGeneList []string         `json:"overlapGeneList"`
-	Genes           *sys.Set[string] `json:"-"`
 	UsableGenes     *sys.Set[string] `json:"-"`
+	Genes           *sys.Set[string] `json:"-"`
+	Geneset         string           `json:"geneset"`
+	PathwayGenes    []int            `json:"nPathwayGenes"`
+	Pathway         []string         `json:"pathway"`
+	OverlapGenes    []int            `json:"nOverlapGenes"`
+	KDivN           []float64        `json:"kdivn"`
+	P               []float64        `json:"p"`
+	Q               []float64        `json:"q"`
+	OverlapGeneList []string         `json:"overlapGeneList"`
+	DatasetIdx      []int            `json:"datasetIdx"`
+	Datasets        []string         `json:"datasets"`
+	GenesetSize     int              `json:"n"`
+	N               int              `json:"N"`
 }
 
 func NewPathwayOverlaps(geneset *Pathway, datasets []*Dataset) *PathwayOverlaps {
