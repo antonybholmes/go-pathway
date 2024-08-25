@@ -1,6 +1,6 @@
 module github.com/antonybholmes/go-pathway
 
-go 1.22.5
+go 1.23
 
 replace github.com/antonybholmes/go-basemath => ../go-basemath
 
