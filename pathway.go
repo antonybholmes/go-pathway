@@ -75,8 +75,8 @@ func NewDataset(name string) *Dataset {
 // }
 
 type PathwayDB struct {
-	file  string
 	genes *sys.Set[string]
+	file  string
 }
 
 func NewPathwayDB(file string) *PathwayDB {
@@ -106,7 +106,7 @@ func NewPathwayDB(file string) *PathwayDB {
 
 	log.Debug().Msgf("Pathway genes: %d", len(*genes))
 
-	return &PathwayDB{file, genes}
+	return &PathwayDB{file: file, genes: genes}
 }
 
 func (pathwaydb *PathwayDB) Datasets() (*[]*DatasetInfo, error) {
