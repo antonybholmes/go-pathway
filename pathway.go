@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// To match MSigDB though unclear where they got this number
 const GENES_IN_UNIVERSE = 45956
 
 const DATASET_SQL = "SELECT DISTINCT pathway.dataset, COUNT(pathway.id) FROM pathway GROUP BY pathway.dataset ORDER BY pathway.dataset"
@@ -315,7 +316,6 @@ func (pathwaydb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*Pat
 			var kDivN float64 = float64(k) / float64(n)
 
 			if k > 0 {
-
 				p = 1 - basemath.HypGeomCDF(k-1, GENES_IN_UNIVERSE, K, n)
 			}
 
