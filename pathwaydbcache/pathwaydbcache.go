@@ -32,5 +32,5 @@ func Overlap(testPathway *pathway.Pathway, datasets []string) (*pathway.PathwayO
 		return nil, err
 	}
 
-	return pathway.Overlap(testPathway, ds)
+	return instance.Overlap(testPathway, ds)
 }
