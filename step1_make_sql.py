@@ -4,6 +4,10 @@ import re
 import string
 
 import pandas as pd
+from nanoid import generate
+
+# good enough for Planetscale
+print(generate("0123456789abcdefghijklmnopqrstuvwxyz", 12))
 
 
 printable = set(string.printable)
@@ -16,7 +20,7 @@ def clean(text):
     return ret
 
 
-with open("pathway.sql", "w") as f:
+with open("../data/modules/pathway/pathway.sql", "w") as f:
 
     for file in os.listdir():
         if "gmt" in file:
@@ -35,12 +39,18 @@ with open("pathway.sql", "w") as f:
                     source = tokens[1]
                     source = clean(source)
 
-                    genes = ",".join(tokens[2:])
+                    genes = list(sorted(set(tokens[2:])))
+                    geneCount = len(genes)
+                    genes = ",".join(genes)
                     genes = clean(genes)
+
+                    organization = "Staudt Lab SignatureDB" if "signaturedb" in file else "MSigDB"
+
+                    publicId = generate("0123456789abcdefghijklmnopqrstuvwxyz", 12)
 
                     # add a comma at the end of tags for exact search e.g. exactly BCL6 => 'BCL6,'
                     print(
-                        f"INSERT INTO pathway (dataset, name, source, genes) VALUES ('{db}', '{pathway}', '{source}', '{genes}');",
+                        f"INSERT INTO pathway (public_id, organization, dataset, name, source, gene_count, genes) VALUES ('{publicId}', '{organization}', '{db}', '{pathway}', '{source}', {geneCount}, '{genes}');",
                         file=f,
                     )
 

@@ -21,12 +21,20 @@ func GetInstance() *pathway.PathwayDB {
 	return instance
 }
 
-func Datasets() (*[]*pathway.DatasetInfo, error) {
-	return GetInstance().Datasets()
+func Genes() []string {
+	return instance.Genes()
+}
+
+func AllDatasetsInfo() ([]*pathway.OrganizationInfo, error) {
+	return instance.AllDatasetsInfo()
+}
+
+func MakePublicDataset(organization string, name string) (*pathway.PublicDataset, error) {
+	return instance.MakePublicDataset(organization, name)
 }
 
 func Overlap(testPathway *pathway.Pathway, datasets []string) (*pathway.PathwayOverlaps, error) {
-	ds, err := GetInstance().MakeDatasets(datasets)
+	ds, err := instance.MakeDatasets(datasets)
 
 	if err != nil {
 		return nil, err
