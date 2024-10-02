@@ -28,8 +28,8 @@ const GENES_SQL = "SELECT genes.gene_symbol FROM genes"
 
 type PublicPathway = struct {
 	PublicId string   `json:"publicId"`
-	Genes    []string `json:"genes"`
 	Name     string   `json:"name"`
+	Genes    []string `json:"genes"`
 }
 
 type Pathway = struct {

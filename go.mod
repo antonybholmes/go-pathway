@@ -10,7 +10,7 @@ replace github.com/antonybholmes/go-auth => ../go-auth
 
 require (
 	github.com/antonybholmes/go-basemath v0.0.0-20240825181410-a6174a39116c
-	github.com/antonybholmes/go-sys v0.0.0-20240901191116-4f230479c4a8
+	github.com/antonybholmes/go-sys v0.0.0-20240927192250-5d2fd7cd5f40
 	github.com/rs/zerolog v1.33.0
 )
 
@@ -32,7 +32,7 @@ require (
 )
 
 require (
-	github.com/antonybholmes/go-auth v0.0.0-00010101000000-000000000000
+	github.com/antonybholmes/go-auth v0.0.0-20240926225951-a81129618c4d
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	golang.org/x/sys v0.25.0 // indirect
