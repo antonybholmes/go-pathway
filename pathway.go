@@ -13,7 +13,7 @@ import (
 )
 
 // To match MSigDB though unclear where they got this number
-const GENES_IN_UNIVERSE = 45956
+const GENES_IN_UNIVERSE = 42577 //45956
 
 const DATASETS_SQL = "SELECT DISTINCT pathway.organization, pathway.dataset, COUNT(pathway.id) FROM pathway GROUP BY pathway.organization, pathway.dataset ORDER BY pathway.organization, pathway.dataset"
 
