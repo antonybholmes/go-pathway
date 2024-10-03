@@ -161,7 +161,7 @@ func NewPathwayDB(file string) *PathwayDB {
 		genes.Add(gene)
 	}
 
-	log.Debug().Msgf("Pathway genes: %d", len(*genes))
+	log.Debug().Msgf("Pathway genes: %s %d", file, len(*genes))
 
 	return &PathwayDB{file: file, genes: genes}
 }
@@ -403,7 +403,7 @@ type PathwayOverlaps struct {
 	PathwayGeneCounts []int            `json:"pathwayGeneCounts"`
 	Pathway           []string         `json:"pathway"`
 	OverlapGeneCounts []int            `json:"overlapGeneCounts"`
-	KDivN             []float64        `json:"kdivn"`
+	KDivK             []float64        `json:"kdivK"`
 	PValues           []float64        `json:"pvalues"`
 	QValues           []float64        `json:"qvalues"`
 	OverlapGeneList   []string         `json:"overlapGeneList"`
@@ -453,7 +453,7 @@ func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dat
 		GenesInUniverseCount: GENES_IN_UNIVERSE,
 		PathwayGeneCounts:    make([]int, numTests),
 		OverlapGeneCounts:    make([]int, numTests),
-		KDivN:                make([]float64, numTests),
+		KDivK:                make([]float64, numTests),
 		PValues:              make([]float64, numTests),
 		QValues:              make([]float64, numTests),
 		//Log10Q:          make([]float64, n),
@@ -491,7 +491,7 @@ func (pathwaydb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*Pat
 
 			p := float64(1)
 
-			var kDivN float64 = float64(k) / float64(n)
+			var kDivK float64 = float64(k) / float64(n)
 
 			if k > 0 {
 				p = 1 - basemath.HypGeomCDF(k-1, GENES_IN_UNIVERSE, K, n)
@@ -505,7 +505,7 @@ func (pathwaydb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*Pat
 			ret.OverlapGeneCounts[gi] = k
 			//ret.N[gi] = GENES_IN_UNIVERSE
 			ret.PValues[gi] = p
-			ret.KDivN[gi] = kDivN
+			ret.KDivK[gi] = kDivK
 			ret.OverlapGeneList[gi] = strings.Join(overlappingGenes, ",")
 
 			gi++
