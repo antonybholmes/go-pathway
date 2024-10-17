@@ -35,7 +35,7 @@ require (
 )
 
 require (
-	github.com/antonybholmes/go-auth v0.0.0-20241007232612-6e7f7c3f3521
+	github.com/antonybholmes/go-auth v0.0.0-20241010005842-f9014d132f8a
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	golang.org/x/sys v0.26.0 // indirect
