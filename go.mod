@@ -9,8 +9,8 @@ replace github.com/antonybholmes/go-sys => ../go-sys
 replace github.com/antonybholmes/go-auth => ../go-auth
 
 require (
-	github.com/antonybholmes/go-basemath v0.0.0-20241223034309-5f70a342a0e3
-	github.com/antonybholmes/go-sys v0.0.0-20241219150701-64d5bd9623f7
+	github.com/antonybholmes/go-basemath v0.0.0-20250107213632-9971295f8456
+	github.com/antonybholmes/go-sys v0.0.0-20250106231244-0d0c227dc641
 	github.com/rs/zerolog v1.33.0
 )
 
@@ -32,13 +32,14 @@ require (
 	github.com/xuri/excelize/v2 v2.9.0 // indirect
 	github.com/xuri/nfp v0.0.0-20240318013403-ab9948c2c4a7 // indirect
 	github.com/xyproto/randomstring v1.2.0 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/crypto v0.32.0 // indirect
+	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
+	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 )
 
 require (
-	github.com/antonybholmes/go-auth v0.0.0-20250101192611-ce4e7f6d596b
+	github.com/antonybholmes/go-auth v0.0.0-20250106231240-4e055d4b6816
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	golang.org/x/sys v0.29.0 // indirect
