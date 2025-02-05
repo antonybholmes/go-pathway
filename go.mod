@@ -33,13 +33,13 @@ require (
 	github.com/xuri/nfp v0.0.0-20250111060730-82a408b9aa71 // indirect
 	github.com/xyproto/randomstring v1.2.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
+	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 )
 
 require (
-	github.com/antonybholmes/go-auth v0.0.0-20250113143741-d6cf1d634ada
+	github.com/antonybholmes/go-auth v0.0.0-20250120143519-cdfc796720e1
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	golang.org/x/sys v0.29.0 // indirect
