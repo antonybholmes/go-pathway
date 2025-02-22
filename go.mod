@@ -11,7 +11,7 @@ replace github.com/antonybholmes/go-sys => ../go-sys
 replace github.com/antonybholmes/go-auth => ../go-auth
 
 require (
-	github.com/antonybholmes/go-basemath v0.0.0-20250213145427-b2243abab911
+	github.com/antonybholmes/go-basemath v0.0.0-20250220232044-da65245fca93
 	github.com/antonybholmes/go-sys v0.0.0-20250213145427-162471c206ff
 	github.com/rs/zerolog v1.33.0
 )
@@ -49,7 +49,7 @@ require (
 	github.com/xuri/nfp v0.0.0-20250111060730-82a408b9aa71 // indirect
 	github.com/xyproto/randomstring v1.2.0 // indirect
 	golang.org/x/arch v0.14.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/crypto v0.34.0 // indirect
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
