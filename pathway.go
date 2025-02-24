@@ -15,16 +15,35 @@ import (
 // To match MSigDB though unclear where they got this number
 const GENES_IN_UNIVERSE = 42577 //45956
 
-const DATASETS_SQL = "SELECT DISTINCT pathway.organization, pathway.dataset, COUNT(pathway.id) FROM pathway GROUP BY pathway.organization, pathway.dataset ORDER BY pathway.organization, pathway.dataset"
+const DATASETS_SQL = `SELECT DISTINCT 
+	pathway.organization, 
+	pathway.dataset, 
+	COUNT(pathway.id) 
+	FROM pathway 
+	GROUP BY pathway.organization, pathway.dataset 
+	ORDER BY pathway.organization, pathway.dataset`
 
 //const ORG_INFO_SQL = "SELECT DISTINCT pathway.organization, pathway.dataset FROM pathway ORDER BY pathway.organization, pathway.dataset"
 
-const ALL_PATHWAYS_SQL = "SELECT DISTINCT pathway.organization, pathway.dataset, pathway.name, pathway.gene_count, pathway.genes FROM pathway ORDER BY pathway.organization, pathway.dataset, pathway.name"
+const ALL_PATHWAYS_SQL = `SELECT DISTINCT 
+	pathway.organization, 
+	pathway.dataset, 
+	pathway.name, 
+	pathway.gene_count, 
+	pathway.genes 
+	FROM pathway 
+	ORDER BY pathway.organization, pathway.dataset, pathway.name`
 
 // const PATHWAYS_SQL = "SELECT dataset, name, genes FROM pathway WHERE dataset IN (<in>) ORDER BY name"
-const PATHWAYS_SQL = "SELECT pathway.public_id, pathway.name, pathway.gene_count, pathway.genes FROM pathway WHERE pathway.organization = ?1 AND pathway.dataset = ?2 ORDER BY pathway.name"
+const PATHWAYS_SQL = `SELECT 
+	pathway.public_id, 
+	pathway.name, 
+	pathway.gene_count, 
+	pathway.genes 
+	FROM pathway 
+	WHERE pathway.organization = ?1 AND pathway.dataset = ?2 ORDER BY pathway.name`
 
-const GENES_SQL = "SELECT genes.gene_symbol FROM genes"
+const GENES_SQL = `SELECT genes.gene_symbol FROM genes`
 
 type PublicPathway = struct {
 	PublicId string   `json:"publicId"`
