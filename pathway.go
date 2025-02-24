@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/antonybholmes/go-auth"
 	"github.com/antonybholmes/go-basemath"
 	"github.com/antonybholmes/go-sys"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -77,7 +77,7 @@ type Geneset struct {
 }
 
 func (geneset Geneset) ToPathway() *Pathway {
-	p := NewPathway(auth.NanoId(), geneset.Name, geneset.Genes)
+	p := NewPathway(sys.NanoId(), geneset.Name, geneset.Genes)
 
 	return p
 }
