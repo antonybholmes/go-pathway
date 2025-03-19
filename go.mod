@@ -12,7 +12,7 @@ replace github.com/antonybholmes/go-web => ../go-web
 
 require (
 	github.com/antonybholmes/go-basemath v0.0.0-20250307171544-f522e91d1448
-	github.com/antonybholmes/go-sys v0.0.0-20250303144104-66c6d4f258a5
+	github.com/antonybholmes/go-sys v0.0.0-20250307171544-adff7a5ac327
 	github.com/rs/zerolog v1.33.0
 )
 
