@@ -12,7 +12,7 @@ replace github.com/antonybholmes/go-web => ../go-web
 
 require (
 	github.com/antonybholmes/go-basemath v0.0.0-20250307171544-f522e91d1448
-	github.com/antonybholmes/go-sys v0.0.0-20250326211431-bdf1f86a7b8b
+	github.com/antonybholmes/go-sys v0.0.0-20250407123533-c0a150855656
 	github.com/rs/zerolog v1.34.0
 )
 
@@ -27,8 +27,8 @@ require (
 	github.com/xuri/excelize/v2 v2.9.0 // indirect
 	github.com/xuri/nfp v0.0.0-20250226145837-86d5fc24b2ba // indirect
 	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
-	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 )
 
