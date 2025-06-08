@@ -11,8 +11,8 @@ replace github.com/antonybholmes/go-sys => ../go-sys
 replace github.com/antonybholmes/go-web => ../go-web
 
 require (
-	github.com/antonybholmes/go-basemath v0.0.0-20250603204422-af3eff854e10
-	github.com/antonybholmes/go-sys v0.0.0-20250530200903-de9311aa2093
+	github.com/antonybholmes/go-basemath v0.0.0-20250606171604-5853de3754da
+	github.com/antonybholmes/go-sys v0.0.0-20250606171605-31639110750b
 	github.com/rs/zerolog v1.34.0
 )
 
