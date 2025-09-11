@@ -9,8 +9,8 @@ replace github.com/antonybholmes/go-sys => ../go-sys
 replace github.com/antonybholmes/go-web => ../go-web
 
 require (
-	github.com/antonybholmes/go-basemath v0.0.0-20250812213434-6cf4f7c1176d
-	github.com/antonybholmes/go-sys v0.0.0-20250812213435-bed670f8992a
+	github.com/antonybholmes/go-basemath v0.0.0-20250911171638-68021ab78342
+	github.com/antonybholmes/go-sys v0.0.0-20250911204215-49e6747dc058
 	github.com/rs/zerolog v1.34.0
 )
 
