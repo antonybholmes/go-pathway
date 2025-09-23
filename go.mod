@@ -10,7 +10,7 @@ replace github.com/antonybholmes/go-web => ../go-web
 
 require (
 	github.com/antonybholmes/go-basemath v0.0.0-20250911171638-68021ab78342
-	github.com/antonybholmes/go-sys v0.0.0-20250916205828-b5b5a6c83749
+	github.com/antonybholmes/go-sys v0.0.0-20250922212114-2fa2c36e7c21
 	github.com/rs/zerolog v1.34.0
 )
 
