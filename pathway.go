@@ -59,7 +59,7 @@ type Pathway = struct {
 
 func NewPathway(publicId string, name string, genes []string) *Pathway {
 
-	uniqueGenes := sys.NewStringSet().UpdateFromList(genes)
+	uniqueGenes := sys.NewStringSet().ListUpdate(genes)
 
 	p := Pathway{
 		PublicId: publicId,
