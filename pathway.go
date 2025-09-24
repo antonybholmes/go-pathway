@@ -52,15 +52,14 @@ type PublicPathway = struct {
 }
 
 type Pathway = struct {
-	PublicId string           `json:"publicId"`
-	Genes    *sys.Set[string] `json:"genes"`
-	Name     string           `json:"name"`
+	PublicId string         `json:"publicId"`
+	Genes    *sys.StringSet `json:"genes"`
+	Name     string         `json:"name"`
 }
 
 func NewPathway(publicId string, name string, genes []string) *Pathway {
 
-	uniqueGenes := sys.NewSet[string]()
-	uniqueGenes.UpdateList(genes)
+	uniqueGenes := sys.NewStringSet().UpdateFromList(genes)
 
 	p := Pathway{
 		PublicId: publicId,
@@ -180,13 +179,13 @@ func NewPathwayDB(file string) *PathwayDB {
 		genes.Add(gene)
 	}
 
-	log.Debug().Msgf("Pathway genes: %s %d", file, len(*genes))
+	log.Debug().Msgf("Pathway genes: %s %d", file, genes.Len())
 
 	return &PathwayDB{file: file, genes: genes}
 }
 
 func (pathwaydb *PathwayDB) Genes() []string {
-	return sys.StringSetSort(pathwaydb.genes)
+	return pathwaydb.genes.Keys()
 }
 
 func (pathwaydb *PathwayDB) AllDatasetsInfo() ([]*OrganizationInfo, error) {
@@ -415,19 +414,19 @@ func (pathwaydb *PathwayDB) MakeDatasets(datasets []string) ([]*Dataset, error) 
 }
 
 type PathwayOverlaps struct {
-	ValidGenes        *sys.Set[string] `json:"-"`
-	ValidGeneList     []string         `json:"validGenes"`
-	Genes             *sys.Set[string] `json:"-"`
-	Geneset           string           `json:"geneset"`
-	PathwayGeneCounts []int            `json:"pathwayGeneCounts"`
-	Pathway           []string         `json:"pathway"`
-	OverlapGeneCounts []int            `json:"overlapGeneCounts"`
-	KDivK             []float64        `json:"kdivK"`
-	PValues           []float64        `json:"pvalues"`
-	QValues           []float64        `json:"qvalues"`
-	OverlapGeneList   []string         `json:"overlapGeneList"`
-	DatasetIdx        []int            `json:"datasetIdx"`
-	Datasets          []string         `json:"datasets"`
+	ValidGenes        *sys.StringSet `json:"-"`
+	ValidGeneList     []string       `json:"validGenes"`
+	Genes             *sys.StringSet `json:"-"`
+	Geneset           string         `json:"geneset"`
+	PathwayGeneCounts []int          `json:"pathwayGeneCounts"`
+	Pathway           []string       `json:"pathway"`
+	OverlapGeneCounts []int          `json:"overlapGeneCounts"`
+	KDivK             []float64      `json:"kdivK"`
+	PValues           []float64      `json:"pvalues"`
+	QValues           []float64      `json:"qvalues"`
+	OverlapGeneList   []string       `json:"overlapGeneList"`
+	DatasetIdx        []int          `json:"datasetIdx"`
+	Datasets          []string       `json:"datasets"`
 	//ValidGeneCount       int              `json:"-"`
 	GenesInUniverseCount int `json:"genesInUniverseCount"`
 }
@@ -437,7 +436,7 @@ func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dat
 
 	datasetNames := make([]string, 0, len(datasets))
 
-	genes := sys.NewSet[string]()
+	genes := sys.NewStringSet()
 
 	for _, dataset := range datasets {
 		numTests += len(dataset.Pathways)
@@ -450,9 +449,9 @@ func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dat
 	}
 
 	// see which genes in our test pathway we can use
-	validGenes := sys.NewSet[string]()
+	validGenes := sys.NewStringSet()
 
-	for gene := range *geneset.Genes {
+	for _, gene := range geneset.Genes.Keys() {
 		// if genes.Has(gene) {
 		// 	usableGenes.Add(gene)
 		// }
@@ -479,7 +478,7 @@ func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dat
 		OverlapGeneList: make([]string, numTests),
 		Genes:           genes,
 		ValidGenes:      validGenes,
-		ValidGeneList:   sys.StringSetSort(validGenes),
+		ValidGeneList:   validGenes.Keys(),
 	}
 
 	return &ret
@@ -488,18 +487,18 @@ func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dat
 func (pathwaydb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*PathwayOverlaps, error) {
 	ret := pathwaydb.NewPathwayOverlaps(geneset, datasets)
 
-	n := len(*ret.ValidGenes)
+	n := ret.ValidGenes.Len()
 
 	gi := 0
 	for di, dataset := range datasets {
 		for _, pathway := range dataset.Pathways {
-			K := len(*pathway.Genes)
+			K := pathway.Genes.Len()
 
 			overlappingGenesInPathway := ret.ValidGenes.Intersect(pathway.Genes)
 
-			overlappingGenes := make([]string, 0, len(*overlappingGenesInPathway))
+			overlappingGenes := make([]string, 0, overlappingGenesInPathway.Len())
 
-			for k := range *overlappingGenesInPathway {
+			for _, k := range overlappingGenesInPathway.Keys() {
 				overlappingGenes = append(overlappingGenes, k)
 			}
 
