@@ -8,7 +8,7 @@ import (
 	"github.com/antonybholmes/go-basemath"
 	"github.com/antonybholmes/go-sys"
 
-	"github.com/rs/zerolog/log"
+	"github.com/antonybholmes/go-sys/log"
 )
 
 // To match MSigDB though unclear where they got this number
