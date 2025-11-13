@@ -3,7 +3,6 @@ package genes
 import (
 	"database/sql"
 	"math"
-	"sort"
 	"strings"
 
 	"github.com/antonybholmes/go-basemath"
@@ -52,9 +51,9 @@ type PublicPathway = struct {
 }
 
 type Pathway = struct {
-	PublicId string         `json:"publicId"`
-	Genes    *sys.StringSet `json:"genes"`
-	Name     string         `json:"name"`
+	PublicId string           `json:"publicId"`
+	Genes    *sys.Set[string] `json:"genes"`
+	Name     string           `json:"name"`
 }
 
 func NewPathway(publicId string, name string, genes []string) *Pathway {
@@ -496,16 +495,14 @@ func (pathwaydb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*Pat
 
 			overlappingGenesInPathway := ret.ValidGenes.Intersect(pathway.Genes)
 
-			overlappingGenes := make([]string, 0, overlappingGenesInPathway.Len())
+			//overlappingGenes := make([]string, 0, overlappingGenesInPathway.Len())
 
-			for _, k := range overlappingGenesInPathway.Keys() {
-				overlappingGenes = append(overlappingGenes, k)
-			}
+			//overlappingGenes = append(overlappingGenes, overlappingGenesInPathway.Keys()...)
 
 			// sort overlapping genes for presentation
-			sort.Strings(overlappingGenes)
+			//sort.Strings(overlappingGenes)
 
-			k := len(overlappingGenes)
+			k := len(overlappingGenesInPathway.Keys())
 
 			p := float64(1)
 
@@ -524,7 +521,7 @@ func (pathwaydb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*Pat
 			//ret.N[gi] = GENES_IN_UNIVERSE
 			ret.PValues[gi] = p
 			ret.KDivK[gi] = kDivK
-			ret.OverlapGeneList[gi] = strings.Join(overlappingGenes, ",")
+			ret.OverlapGeneList[gi] = strings.Join(overlappingGenesInPathway.Keys(), ",")
 
 			gi++
 		}
