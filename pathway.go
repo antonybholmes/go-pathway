@@ -12,49 +12,104 @@ import (
 )
 
 // To match MSigDB though unclear where they got this number
-const GENES_IN_UNIVERSE = 42577 //45956
+const (
+	GenesInUniverse = 42577 //45956
 
-const DATASETS_SQL = `SELECT DISTINCT 
-	pathway.organization, 
-	pathway.dataset, 
-	COUNT(pathway.id) 
-	FROM pathway 
-	GROUP BY pathway.organization, pathway.dataset 
-	ORDER BY pathway.organization, pathway.dataset`
+	DatasetsSql = `SELECT DISTINCT 
+		pathway.organization, 
+		pathway.dataset, 
+		COUNT(pathway.id) 
+		FROM pathway 
+		GROUP BY pathway.organization, pathway.dataset 
+		ORDER BY pathway.organization, pathway.dataset`
 
-//const ORG_INFO_SQL = "SELECT DISTINCT pathway.organization, pathway.dataset FROM pathway ORDER BY pathway.organization, pathway.dataset"
+	//  ORG_INFO_SQL = "SELECT DISTINCT pathway.organization, pathway.dataset FROM pathway ORDER BY pathway.organization, pathway.dataset"
 
-const ALL_PATHWAYS_SQL = `SELECT DISTINCT 
-	pathway.organization, 
-	pathway.dataset, 
-	pathway.name, 
-	pathway.gene_count, 
-	pathway.genes 
-	FROM pathway 
-	ORDER BY pathway.organization, pathway.dataset, pathway.name`
+	AllPathwaysSql = `SELECT DISTINCT 
+		pathway.organization, 
+		pathway.dataset, 
+		pathway.name, 
+		pathway.gene_count, 
+		pathway.genes 
+		FROM pathway 
+		ORDER BY pathway.organization, pathway.dataset, pathway.name`
 
-// const PATHWAYS_SQL = "SELECT dataset, name, genes FROM pathway WHERE dataset IN (<in>) ORDER BY name"
-const PATHWAYS_SQL = `SELECT 
-	pathway.public_id, 
-	pathway.name, 
-	pathway.gene_count, 
-	pathway.genes 
-	FROM pathway 
-	WHERE pathway.organization = ?1 AND pathway.dataset = ?2 ORDER BY pathway.name`
+	//   PathwaysSql = "SELECT dataset, name, genes FROM pathway WHERE dataset IN (<in>) ORDER BY name"
+	PathwaysSql = `SELECT 
+		pathway.public_id, 
+		pathway.name, 
+		pathway.gene_count, 
+		pathway.genes 
+		FROM pathway 
+		WHERE pathway.organization = :org AND pathway.dataset = :dataset ORDER BY pathway.name`
 
-const GENES_SQL = `SELECT genes.gene_symbol FROM genes`
+	GenesSql = `SELECT genes.gene_symbol FROM genes`
+)
 
-type PublicPathway = struct {
-	PublicId string   `json:"publicId"`
-	Name     string   `json:"name"`
-	Genes    []string `json:"genes"`
-}
+type (
+	PublicPathway = struct {
+		PublicId string   `json:"publicId"`
+		Name     string   `json:"name"`
+		Genes    []string `json:"genes"`
+	}
 
-type Pathway = struct {
-	PublicId string           `json:"publicId"`
-	Genes    *sys.Set[string] `json:"genes"`
-	Name     string           `json:"name"`
-}
+	Pathway = struct {
+		PublicId string           `json:"publicId"`
+		Genes    *sys.Set[string] `json:"genes"`
+		Name     string           `json:"name"`
+	}
+
+	Geneset struct {
+		Name  string   `json:"name"`
+		Genes []string `json:"genes"`
+	}
+
+	DatasetInfo struct {
+		Organization string `json:"organization"`
+		Name         string `json:"name"`
+		PathwayCount int    `json:"pathways"`
+	}
+
+	Dataset struct {
+		Organization string     `json:"organization"`
+		Name         string     `json:"name"`
+		Pathways     []*Pathway `json:"pathways"`
+	}
+
+	PublicDataset struct {
+		Organization string           `json:"organization"`
+		Name         string           `json:"name"`
+		Pathways     []*PublicPathway `json:"pathways"`
+	}
+
+	OrganizationInfo struct {
+		Name     string         `json:"name"`
+		Datasets []*DatasetInfo `json:"datasets"`
+	}
+
+	PathwayDB struct {
+		genes *sys.Set[string]
+		file  string
+	}
+
+	PathwayOverlaps struct {
+		ValidGenes        *sys.StringSet `json:"-"`
+		ValidGeneList     []string       `json:"validGenes"`
+		Genes             *sys.StringSet `json:"-"`
+		Geneset           string         `json:"geneset"`
+		PathwayGeneCounts []int          `json:"pathwayGeneCounts"`
+		Pathway           []string       `json:"pathway"`
+		OverlapGeneCounts []int          `json:"overlapGeneCounts"`
+		KDivK             []float64      `json:"kdivK"`
+		PValues           []float64      `json:"pvalues"`
+		QValues           []float64      `json:"qvalues"`
+		OverlapGeneList   []string       `json:"overlapGeneList"`
+		DatasetIdx        []int          `json:"datasetIdx"`
+		Datasets          []string       `json:"datasets"`
+		//ValidGeneCount       int              `json:"-"`
+		GenesInUniverseCount int `json:"genesInUniverseCount"`
+	}
+)
 
 func NewPathway(publicId string, name string, genes []string) *Pathway {
 
@@ -69,38 +124,10 @@ func NewPathway(publicId string, name string, genes []string) *Pathway {
 	return &p
 }
 
-type Geneset struct {
-	Name  string   `json:"name"`
-	Genes []string `json:"genes"`
-}
-
 func (geneset Geneset) ToPathway() *Pathway {
 	p := NewPathway(sys.NanoId(), geneset.Name, geneset.Genes)
 
 	return p
-}
-
-type DatasetInfo struct {
-	Organization string `json:"organization"`
-	Name         string `json:"name"`
-	PathwayCount int    `json:"pathways"`
-}
-
-type Dataset struct {
-	Organization string     `json:"organization"`
-	Name         string     `json:"name"`
-	Pathways     []*Pathway `json:"pathways"`
-}
-
-type PublicDataset struct {
-	Organization string           `json:"organization"`
-	Name         string           `json:"name"`
-	Pathways     []*PublicPathway `json:"pathways"`
-}
-
-type OrganizationInfo struct {
-	Name     string         `json:"name"`
-	Datasets []*DatasetInfo `json:"datasets"`
 }
 
 func NewOrganizationInfo(name string) *OrganizationInfo {
@@ -148,11 +175,6 @@ func NewDataset(org string, name string) *Dataset {
 // 	}
 // }
 
-type PathwayDB struct {
-	genes *sys.Set[string]
-	file  string
-}
-
 func NewPathwayDB(file string) *PathwayDB {
 
 	db := sys.Must(sql.Open("sqlite3", file))
@@ -161,7 +183,7 @@ func NewPathwayDB(file string) *PathwayDB {
 
 	genes := sys.NewSet[string]()
 
-	rows := sys.Must(db.Query(GENES_SQL))
+	rows := sys.Must(db.Query(GenesSql))
 
 	defer rows.Close()
 
@@ -197,7 +219,7 @@ func (pathwaydb *PathwayDB) AllDatasetsInfo() ([]*OrganizationInfo, error) {
 
 	defer db.Close()
 
-	rows, err := db.Query(DATASETS_SQL)
+	rows, err := db.Query(DatasetsSql)
 
 	if err != nil {
 		return nil, err
@@ -255,7 +277,7 @@ func (pathwaydb *PathwayDB) MakePublicDataset(org string, name string) (*PublicD
 	// 	inRHS[i] = "?"
 	// }
 
-	rows, err := db.Query(PATHWAYS_SQL, org, name)
+	rows, err := db.Query(PathwaysSql, sql.Named("org", org), sql.Named("dataset", name))
 
 	if err != nil {
 		log.Debug().Msgf("e2 %s", err)
@@ -318,7 +340,7 @@ func (pathwaydb *PathwayDB) MakeDataset(org string, name string) (*Dataset, erro
 	// 	inRHS[i] = "?"
 	// }
 
-	rows, err := db.Query(PATHWAYS_SQL, org, name)
+	rows, err := db.Query(PathwaysSql, sql.Named("org", org), sql.Named("dataset", name))
 
 	if err != nil {
 		log.Debug().Msgf("e2 %s", err)
@@ -412,24 +434,6 @@ func (pathwaydb *PathwayDB) MakeDatasets(datasets []string) ([]*Dataset, error) 
 	return ret, nil
 }
 
-type PathwayOverlaps struct {
-	ValidGenes        *sys.StringSet `json:"-"`
-	ValidGeneList     []string       `json:"validGenes"`
-	Genes             *sys.StringSet `json:"-"`
-	Geneset           string         `json:"geneset"`
-	PathwayGeneCounts []int          `json:"pathwayGeneCounts"`
-	Pathway           []string       `json:"pathway"`
-	OverlapGeneCounts []int          `json:"overlapGeneCounts"`
-	KDivK             []float64      `json:"kdivK"`
-	PValues           []float64      `json:"pvalues"`
-	QValues           []float64      `json:"qvalues"`
-	OverlapGeneList   []string       `json:"overlapGeneList"`
-	DatasetIdx        []int          `json:"datasetIdx"`
-	Datasets          []string       `json:"datasets"`
-	//ValidGeneCount       int              `json:"-"`
-	GenesInUniverseCount int `json:"genesInUniverseCount"`
-}
-
 func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dataset) *PathwayOverlaps {
 	numTests := 0
 
@@ -467,7 +471,7 @@ func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dat
 		DatasetIdx: make([]int, numTests),
 		Pathway:    make([]string, numTests),
 		//ValidGeneCount:       len(*usableGenes),
-		GenesInUniverseCount: GENES_IN_UNIVERSE,
+		GenesInUniverseCount: GenesInUniverse,
 		PathwayGeneCounts:    make([]int, numTests),
 		OverlapGeneCounts:    make([]int, numTests),
 		KDivK:                make([]float64, numTests),
@@ -509,7 +513,7 @@ func (pathwaydb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*Pat
 			var kDivK float64 = float64(k) / float64(n)
 
 			if k > 0 {
-				p = 1 - basemath.HypGeomCDF(k-1, GENES_IN_UNIVERSE, K, n)
+				p = 1 - basemath.HypGeomCDF(k-1, GenesInUniverse, K, n)
 			}
 
 			//ret.Name[gi] = geneset.Name

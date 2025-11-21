@@ -6,8 +6,10 @@ import (
 	pathway "github.com/antonybholmes/go-pathway"
 )
 
-var instance *pathway.PathwayDB
-var once sync.Once
+var (
+	instance *pathway.PathwayDB
+	once     sync.Once
+)
 
 func InitCache(file string) *pathway.PathwayDB {
 	once.Do(func() {
