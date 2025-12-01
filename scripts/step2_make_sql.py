@@ -2,12 +2,12 @@ import collections
 import os
 import re
 import string
-
+import uuid_utils as uuid
 import pandas as pd
 from nanoid import generate
 
 # good enough for Planetscale
-print(generate("0123456789abcdefghijklmnopqrstuvwxyz", 12))
+# print(generate("0123456789abcdefghijklmnopqrstuvwxyz", 12))
 
 
 printable = set(string.printable)
@@ -20,7 +20,7 @@ def clean(text):
     return ret
 
 
-with open("../data/modules/pathway/pathway.sql", "w") as f:
+with open("../../data/modules/pathway/pathway.sql", "w") as f:
 
     for file in os.listdir():
         if "gmt" in file:
@@ -48,11 +48,12 @@ with open("../data/modules/pathway/pathway.sql", "w") as f:
                         "Staudt Lab SignatureDB" if "signaturedb" in file else "MSigDB"
                     )
 
-                    publicId = generate("0123456789abcdefghijklmnopqrstuvwxyz", 12)
+                    id = uuid.uuid7()
+                    #     generate("0123456789abcdefghijklmnopqrstuvwxyz", 12)
 
                     # add a comma at the end of tags for exact search e.g. exactly BCL6 => 'BCL6,'
                     print(
-                        f"INSERT INTO pathway (public_id, organization, dataset, name, source, gene_count, genes) VALUES ('{publicId}', '{organization}', '{db}', '{pathway}', '{source}', {geneCount}, '{genes}');",
+                        f"INSERT INTO pathway (id, organization, dataset, name, source, gene_count, genes) VALUES ('{id}', '{organization}', '{db}', '{pathway}', '{source}', {geneCount}, '{genes}');",
                         file=f,
                     )
 
@@ -65,10 +66,11 @@ with open("../data/modules/pathway/pathway.sql", "w") as f:
     print("BEGIN TRANSACTION;", file=f)
 
     for gene in genes:
+        id = uuid.uuid7()
 
         # add a comma at the end of tags for exact search e.g. exactly BCL6 => 'BCL6,'
         print(
-            f"INSERT INTO genes (gene_symbol) VALUES ('{gene}');",
+            f"INSERT INTO genes (id, gene_symbol) VALUES ('{id}', '{gene}');",
             file=f,
         )
 

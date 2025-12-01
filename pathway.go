@@ -36,7 +36,7 @@ const (
 
 	//   PathwaysSql = "SELECT dataset, name, genes FROM pathway WHERE dataset IN (<in>) ORDER BY name"
 	PathwaysSql = `SELECT 
-		pathway.public_id, 
+		pathway.id, 
 		pathway.name, 
 		pathway.gene_count, 
 		pathway.genes 
@@ -48,15 +48,15 @@ const (
 
 type (
 	PublicPathway = struct {
-		PublicId string   `json:"publicId"`
-		Name     string   `json:"name"`
-		Genes    []string `json:"genes"`
+		Id    string   `json:"id"`
+		Name  string   `json:"name"`
+		Genes []string `json:"genes"`
 	}
 
 	Pathway = struct {
-		PublicId string           `json:"publicId"`
-		Genes    *sys.Set[string] `json:"genes"`
-		Name     string           `json:"name"`
+		Id    string           `json:"id"`
+		Genes *sys.Set[string] `json:"genes"`
+		Name  string           `json:"name"`
 	}
 
 	Geneset struct {
@@ -111,14 +111,14 @@ type (
 	}
 )
 
-func NewPathway(publicId string, name string, genes []string) *Pathway {
+func NewPathway(id string, name string, genes []string) *Pathway {
 
 	uniqueGenes := sys.NewStringSet().ListUpdate(genes)
 
 	p := Pathway{
-		PublicId: publicId,
-		Name:     name,
-		Genes:    uniqueGenes, //StringSetSort(uniqueGenes),
+		Id:    id,
+		Name:  name,
+		Genes: uniqueGenes, //StringSetSort(uniqueGenes),
 	}
 
 	return &p
@@ -177,7 +177,7 @@ func NewDataset(org string, name string) *Dataset {
 
 func NewPathwayDB(file string) *PathwayDB {
 
-	db := sys.Must(sql.Open("sqlite3", file))
+	db := sys.Must(sql.Open(sys.Sqlite3DB, file))
 
 	defer db.Close()
 
@@ -211,7 +211,7 @@ func (pathwaydb *PathwayDB) Genes() []string {
 
 func (pathwaydb *PathwayDB) AllDatasetsInfo() ([]*OrganizationInfo, error) {
 
-	db, err := sql.Open("sqlite3", pathwaydb.file)
+	db, err := sql.Open(sys.Sqlite3DB, pathwaydb.file)
 
 	if err != nil {
 		return nil, err //fmt.Errorf("there was an error with the database query")
@@ -259,7 +259,7 @@ func (pathwaydb *PathwayDB) AllDatasetsInfo() ([]*OrganizationInfo, error) {
 
 func (pathwaydb *PathwayDB) MakePublicDataset(org string, name string) (*PublicDataset, error) {
 
-	db, err := sql.Open("sqlite3", pathwaydb.file)
+	db, err := sql.Open(sys.Sqlite3DB, pathwaydb.file)
 
 	if err != nil {
 		return nil, err //fmt.Errorf("there was an error with the database query")
@@ -288,7 +288,7 @@ func (pathwaydb *PathwayDB) MakePublicDataset(org string, name string) (*PublicD
 
 	dataset := NewPublicDataset(org, name)
 
-	var publicId string
+	var id string
 	var genes string
 	var geneCount int
 
@@ -297,7 +297,7 @@ func (pathwaydb *PathwayDB) MakePublicDataset(org string, name string) (*PublicD
 		//gene.Taxonomy = tax
 
 		err := rows.Scan(
-			&publicId,
+			&id,
 			&name,
 			&geneCount,
 			&genes)
@@ -306,7 +306,7 @@ func (pathwaydb *PathwayDB) MakePublicDataset(org string, name string) (*PublicD
 			return nil, err
 		}
 
-		pathway := PublicPathway{PublicId: publicId, Name: name, Genes: strings.Split(genes, ",")}
+		pathway := PublicPathway{Id: id, Name: name, Genes: strings.Split(genes, ",")}
 
 		dataset.Pathways = append(dataset.Pathways, &pathway)
 	}
