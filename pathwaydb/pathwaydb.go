@@ -1,9 +1,10 @@
-package pathwaydbcache
+package pathwaydb
 
 import (
 	"sync"
 
 	pathway "github.com/antonybholmes/go-pathway"
+	"github.com/antonybholmes/go-sys"
 )
 
 var (
@@ -11,7 +12,7 @@ var (
 	once     sync.Once
 )
 
-func InitCache(file string) *pathway.PathwayDB {
+func InitPathwayDB(file string) *pathway.PathwayDB {
 	once.Do(func() {
 		instance = pathway.NewPathwayDB(file)
 	})
@@ -23,7 +24,11 @@ func GetInstance() *pathway.PathwayDB {
 	return instance
 }
 
-func Genes() []string {
+func GeneList() ([]string, error) {
+	return instance.GenesList()
+}
+
+func Genes() (*sys.StringSet, error) {
 	return instance.Genes()
 }
 

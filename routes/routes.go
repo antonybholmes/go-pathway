@@ -2,7 +2,7 @@ package routes
 
 import (
 	pathway "github.com/antonybholmes/go-pathway"
-	"github.com/antonybholmes/go-pathway/pathwaydbcache"
+	"github.com/antonybholmes/go-pathway/pathwaydb"
 	"github.com/antonybholmes/go-web"
 	"github.com/gin-gonic/gin"
 )
@@ -71,8 +71,14 @@ func ParseDatasetParamsFromPost(c *gin.Context) (*ReqDatasetParams, error) {
 // }
 
 func GenesRoute(c *gin.Context) {
+	genes, err := pathwaydb.GeneList()
 
-	web.MakeDataResp(c, "", pathwaydbcache.Genes())
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	web.MakeDataResp(c, "", genes)
 }
 
 func DatasetRoute(c *gin.Context) {
@@ -86,7 +92,7 @@ func DatasetRoute(c *gin.Context) {
 
 	//log.Debug().Msgf("params %v", params)
 
-	datasets, err := pathwaydbcache.MakePublicDataset(params.Organization,
+	datasets, err := pathwaydb.MakePublicDataset(params.Organization,
 		params.Name)
 
 	if err != nil {
@@ -99,7 +105,7 @@ func DatasetRoute(c *gin.Context) {
 
 func DatasetsRoute(c *gin.Context) {
 
-	datasets, err := pathwaydbcache.AllDatasetsInfo()
+	datasets, err := pathwaydb.AllDatasetsInfo()
 
 	if err != nil {
 		c.Error(err)
@@ -120,7 +126,7 @@ func PathwayOverlapRoute(c *gin.Context) {
 
 	testPathway := params.Geneset.ToPathway()
 
-	tests, err := pathwaydbcache.Overlap(testPathway, params.Datasets)
+	tests, err := pathwaydb.Overlap(testPathway, params.Datasets)
 
 	if err != nil {
 		c.Error(err)

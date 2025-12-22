@@ -43,7 +43,7 @@ const (
 		FROM pathway 
 		WHERE pathway.organization = :org AND pathway.dataset = :dataset ORDER BY pathway.name`
 
-	GenesSql = `SELECT genes.gene_symbol FROM genes`
+	GenesSql = `SELECT DISTINCT genes.gene_symbol FROM genes ORDER BY genes.gene_symbol`
 )
 
 type (
@@ -88,8 +88,9 @@ type (
 	}
 
 	PathwayDB struct {
-		genes *sys.Set[string]
-		file  string
+		//genes *sys.Set[string]
+		file string
+		db   *sql.DB
 	}
 
 	PathwayOverlaps struct {
@@ -179,11 +180,44 @@ func NewPathwayDB(file string) *PathwayDB {
 
 	db := sys.Must(sql.Open(sys.Sqlite3DB, file))
 
-	defer db.Close()
+	// defer db.Close()
 
-	genes := sys.NewSet[string]()
+	// genes := sys.NewStringSet()
 
-	rows := sys.Must(db.Query(GenesSql))
+	// rows := sys.Must(db.Query(GenesSql))
+
+	// defer rows.Close()
+
+	// var gene string
+
+	// for rows.Next() {
+
+	// 	err := rows.Scan(&gene)
+
+	// 	if err != nil {
+	// 		log.Fatal().Msgf("cannot read genes")
+	// 	}
+
+	// 	genes.Add(gene)
+	// }
+
+	// log.Debug().Msgf("Pathway genes: %s %d", file, genes.Len())
+
+	return &PathwayDB{file: file, db: db}
+}
+
+func (pdb *PathwayDB) Close() error {
+	return pdb.db.Close()
+}
+
+func (pdb *PathwayDB) GenesList() ([]string, error) {
+	genes := make([]string, 0, 20000)
+
+	rows, err := pdb.db.Query(GenesSql)
+
+	if err != nil {
+		return nil, err
+	}
 
 	defer rows.Close()
 
@@ -194,32 +228,45 @@ func NewPathwayDB(file string) *PathwayDB {
 		err := rows.Scan(&gene)
 
 		if err != nil {
-			log.Fatal().Msgf("cannot read genes")
+			return nil, err
+		}
+
+		genes = append(genes, gene)
+	}
+
+	return genes, nil //pathwaydb.genes.Keys()
+}
+
+func (pdb *PathwayDB) Genes() (*sys.StringSet, error) {
+	genes := sys.NewStringSet()
+
+	rows, err := pdb.db.Query(GenesSql)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var gene string
+
+	for rows.Next() {
+
+		err := rows.Scan(&gene)
+
+		if err != nil {
+			return nil, err
 		}
 
 		genes.Add(gene)
 	}
 
-	log.Debug().Msgf("Pathway genes: %s %d", file, genes.Len())
-
-	return &PathwayDB{file: file, genes: genes}
+	return genes, nil //pathwaydb.genes.Keys()
 }
 
-func (pathwaydb *PathwayDB) Genes() []string {
-	return pathwaydb.genes.Keys()
-}
+func (pdb *PathwayDB) AllDatasetsInfo() ([]*OrganizationInfo, error) {
 
-func (pathwaydb *PathwayDB) AllDatasetsInfo() ([]*OrganizationInfo, error) {
-
-	db, err := sql.Open(sys.Sqlite3DB, pathwaydb.file)
-
-	if err != nil {
-		return nil, err //fmt.Errorf("there was an error with the database query")
-	}
-
-	defer db.Close()
-
-	rows, err := db.Query(DatasetsSql)
+	rows, err := pdb.db.Query(DatasetsSql)
 
 	if err != nil {
 		return nil, err
@@ -257,15 +304,7 @@ func (pathwaydb *PathwayDB) AllDatasetsInfo() ([]*OrganizationInfo, error) {
 	return ret, nil
 }
 
-func (pathwaydb *PathwayDB) MakePublicDataset(org string, name string) (*PublicDataset, error) {
-
-	db, err := sql.Open(sys.Sqlite3DB, pathwaydb.file)
-
-	if err != nil {
-		return nil, err //fmt.Errorf("there was an error with the database query")
-	}
-
-	defer db.Close()
+func (pdb *PathwayDB) MakePublicDataset(org string, name string) (*PublicDataset, error) {
 
 	// log.Debug().Msgf("%v", fmt.Sprintf("'%s'", strings.Join(datasets, "','")))
 
@@ -277,7 +316,7 @@ func (pathwaydb *PathwayDB) MakePublicDataset(org string, name string) (*PublicD
 	// 	inRHS[i] = "?"
 	// }
 
-	rows, err := db.Query(PathwaysSql, sql.Named("org", org), sql.Named("dataset", name))
+	rows, err := pdb.db.Query(PathwaysSql, sql.Named("org", org), sql.Named("dataset", name))
 
 	if err != nil {
 		log.Debug().Msgf("e2 %s", err)
@@ -320,15 +359,7 @@ func (pathwaydb *PathwayDB) MakePublicDataset(org string, name string) (*PublicD
 	return dataset, nil
 }
 
-func (pathwaydb *PathwayDB) MakeDataset(org string, name string) (*Dataset, error) {
-
-	db, err := sql.Open("sqlite3", pathwaydb.file)
-
-	if err != nil {
-		return nil, err //fmt.Errorf("there was an error with the database query")
-	}
-
-	defer db.Close()
+func (pdb *PathwayDB) MakeDataset(org string, name string) (*Dataset, error) {
 
 	// log.Debug().Msgf("%v", fmt.Sprintf("'%s'", strings.Join(datasets, "','")))
 
@@ -340,7 +371,7 @@ func (pathwaydb *PathwayDB) MakeDataset(org string, name string) (*Dataset, erro
 	// 	inRHS[i] = "?"
 	// }
 
-	rows, err := db.Query(PathwaysSql, sql.Named("org", org), sql.Named("dataset", name))
+	rows, err := pdb.db.Query(PathwaysSql, sql.Named("org", org), sql.Named("dataset", name))
 
 	if err != nil {
 		log.Debug().Msgf("e2 %s", err)
@@ -385,15 +416,7 @@ func (pathwaydb *PathwayDB) MakeDataset(org string, name string) (*Dataset, erro
 
 // Given the names of datasets, produce objects containing all the
 // pathways of those datasets
-func (pathwaydb *PathwayDB) MakeDatasets(datasets []string) ([]*Dataset, error) {
-
-	db, err := sql.Open("sqlite3", pathwaydb.file)
-
-	if err != nil {
-		return nil, err //fmt.Errorf("there was an error with the database query")
-	}
-
-	defer db.Close()
+func (pdb *PathwayDB) MakeDatasets(datasets []string) ([]*Dataset, error) {
 
 	// log.Debug().Msgf("%v", fmt.Sprintf("'%s'", strings.Join(datasets, "','")))
 
@@ -405,8 +428,6 @@ func (pathwaydb *PathwayDB) MakeDatasets(datasets []string) ([]*Dataset, error) 
 	// 	inRHS[i] = "?"
 	// }
 
-	var dataset *Dataset
-
 	ret := make([]*Dataset, 0, len(datasets))
 
 	for _, ds := range datasets {
@@ -415,7 +436,7 @@ func (pathwaydb *PathwayDB) MakeDatasets(datasets []string) ([]*Dataset, error) 
 		org := tokens[0]
 		name := tokens[1]
 
-		dataset, err = pathwaydb.MakeDataset(org, name)
+		dataset, err := pdb.MakeDataset(org, name)
 
 		if err != nil {
 			log.Debug().Msgf("e %s", err)
@@ -434,7 +455,7 @@ func (pathwaydb *PathwayDB) MakeDatasets(datasets []string) ([]*Dataset, error) 
 	return ret, nil
 }
 
-func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dataset) *PathwayOverlaps {
+func (pdb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dataset) (*PathwayOverlaps, error) {
 	numTests := 0
 
 	datasetNames := make([]string, 0, len(datasets))
@@ -451,6 +472,13 @@ func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dat
 		}
 	}
 
+	// universe of genes
+	genes, err := pdb.Genes()
+
+	if err != nil {
+		return nil, err
+	}
+
 	// see which genes in our test pathway we can use
 	validGenes := sys.NewStringSet()
 
@@ -460,7 +488,7 @@ func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dat
 		// }
 
 		// use the universe of all genes to establish is gene is valid or not
-		if pathwaydb.genes.Has(gene) {
+		if genes.Has(gene) {
 			validGenes.Add(gene)
 		}
 	}
@@ -484,11 +512,15 @@ func (pathwaydb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dat
 		ValidGeneList:   validGenes.Keys(),
 	}
 
-	return &ret
+	return &ret, nil
 }
 
-func (pathwaydb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*PathwayOverlaps, error) {
-	ret := pathwaydb.NewPathwayOverlaps(geneset, datasets)
+func (pdb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*PathwayOverlaps, error) {
+	ret, err := pdb.NewPathwayOverlaps(geneset, datasets)
+
+	if err != nil {
+		return nil, err
+	}
 
 	n := ret.ValidGenes.Len()
 
