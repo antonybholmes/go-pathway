@@ -88,9 +88,8 @@ type (
 	}
 
 	PathwayDB struct {
-		//genes *sys.Set[string]
-		file string
 		db   *sql.DB
+		file string
 	}
 
 	PathwayOverlaps struct {
