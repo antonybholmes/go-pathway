@@ -10,7 +10,7 @@ replace github.com/antonybholmes/go-web => ../go-web
 
 require (
 	github.com/antonybholmes/go-basemath v0.0.0-20260204001030-d512600734fa
-	github.com/antonybholmes/go-sys v0.0.0-20260216173437-1755a134eb0d
+	github.com/antonybholmes/go-sys v0.0.0-20260302215512-25fe845a717e
 	github.com/gin-gonic/gin v1.11.0
 )
 
@@ -56,6 +56,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
