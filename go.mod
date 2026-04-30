@@ -9,14 +9,14 @@ replace github.com/antonybholmes/go-sys => ../go-sys
 replace github.com/antonybholmes/go-web => ../go-web
 
 require (
-	github.com/antonybholmes/go-basemath v0.0.0-20260414211833-d03296b3071e
-	github.com/antonybholmes/go-sys v0.0.0-20260414211834-526fb62c6da0
+	github.com/antonybholmes/go-basemath v0.0.0-20260422134522-9e8f9f5650da
+	github.com/antonybholmes/go-sys v0.0.0-20260422134523-dadad00d6c60
 	github.com/gin-gonic/gin v1.12.0
 )
 
 require (
 	github.com/bytedance/gopkg v0.1.4 // indirect
-	github.com/bytedance/sonic v1.15.0 // indirect
+	github.com/bytedance/sonic v1.15.1 // indirect
 	github.com/bytedance/sonic/loader v0.5.1 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
@@ -43,7 +43,7 @@ require (
 	github.com/xuri/efp v0.0.1 // indirect
 	github.com/xuri/excelize/v2 v2.10.1 // indirect
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
-	go.mongodb.org/mongo-driver/v2 v2.5.1 // indirect
+	go.mongodb.org/mongo-driver/v2 v2.6.0 // indirect
 	golang.org/x/arch v0.26.0 // indirect
 	golang.org/x/crypto v0.50.0 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
@@ -55,7 +55,7 @@ require (
 require (
 	github.com/antonybholmes/go-web v0.0.0-20251215211100-5555b69aa3c0
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.21 // indirect
+	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
 	golang.org/x/sys v0.43.0 // indirect
