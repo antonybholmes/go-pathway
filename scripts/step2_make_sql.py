@@ -75,17 +75,17 @@ cursor.execute(
     CREATE TABLE genes (
         id INTEGER PRIMARY KEY,
         public_id TEXT NOT NULL UNIQUE,
-        name TEXT NOT NULL UNIQUE,
+        symbol TEXT NOT NULL UNIQUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """,
 )
-cursor.execute("CREATE INDEX idx_genes_name ON genes (LOWER(name));")
+cursor.execute("CREATE INDEX idx_genes_symbol ON genes (LOWER(symbol));")
 
 
 cursor.execute(
     f"""
-    CREATE TABLE pathways (
+    CREATE TABLE genesets (
         id INTEGER PRIMARY KEY,
         public_id TEXT NOT NULL UNIQUE,
         collection_id INTEGER NOT NULL,
@@ -96,33 +96,33 @@ cursor.execute(
     """,
 )
 
-cursor.execute("CREATE INDEX idx_pathways_collection_id ON pathways (collection_id);")
-cursor.execute("CREATE INDEX idx_pathways_name ON pathways (name);")
+cursor.execute("CREATE INDEX idx_genesets_collection_id ON genesets (collection_id);")
+cursor.execute("CREATE INDEX idx_genesets_name ON genesets (name);")
 
 
 cursor.execute(
     f"""
-    CREATE TABLE pathway_genes (
+    CREATE TABLE geneset_genes (
         id INTEGER PRIMARY KEY,
-        pathway_id INTEGER NOT NULL,
+        geneset_id INTEGER NOT NULL,
         gene_id INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (pathway_id) REFERENCES pathways(id) ON DELETE CASCADE,
+        FOREIGN KEY (geneset_id) REFERENCES genesets(id) ON DELETE CASCADE,
         FOREIGN KEY (gene_id) REFERENCES genes(id) ON DELETE CASCADE,
-        UNIQUE (pathway_id, gene_id)
+        UNIQUE (geneset_id, gene_id)
     );
     """,
 )
 
 cursor.execute(
-    "CREATE INDEX idx_pathway_genes_pathway_id ON pathway_genes (pathway_id);"
+    "CREATE INDEX idx_geneset_genes_geneset_id ON geneset_genes (geneset_id);"
 )
-cursor.execute("CREATE INDEX idx_pathway_genes_gene_id ON pathway_genes (gene_id);")
+cursor.execute("CREATE INDEX idx_geneset_genes_gene_id ON geneset_genes (gene_id);")
 
 
 dataset_map = {}
 collection_map = {}
-pathway_map = {}
+geneset_map = {}
 gene_map = {}
 
 for file in os.listdir():
@@ -172,21 +172,21 @@ for file in os.listdir():
             pathway = tokens[0]
             pathway = clean(pathway)
 
-            if pathway not in pathway_map:
-                pathway_id = str(uuid.uuid7())
-                pathway_map[pathway] = len(pathway_map) + 1
+            if pathway not in geneset_map:
+                geneset_id = str(uuid.uuid7())
+                geneset_map[pathway] = len(geneset_map) + 1
 
                 cursor.execute(
-                    f"INSERT INTO pathways (id, public_id, collection_id, name) VALUES (?, ?, ?, ?);",
+                    f"INSERT INTO genesets (id, public_id, collection_id, name) VALUES (?, ?, ?, ?);",
                     (
-                        pathway_map[pathway],
-                        pathway_id,
+                        geneset_map[pathway],
+                        geneset_id,
                         collection_id,
                         pathway,
                     ),
                 )
 
-            pathway_id = pathway_map[pathway]
+            geneset_id = geneset_map[pathway]
 
             source = tokens[1]
             source = clean(source)
@@ -199,8 +199,12 @@ for file in os.listdir():
                     gene_id = str(uuid.uuid7())
                     gene_map[g] = len(gene_map) + 1
 
+                    if g == "10409":
+                        print("GOTCHA", file, g, gene_id)
+                        # exit(1)
+
                     cursor.execute(
-                        f"INSERT INTO genes (id, public_id, name) VALUES (?, ?, ?);",
+                        f"INSERT INTO genes (id, public_id, symbol) VALUES (?, ?, ?);",
                         (
                             gene_map[g],
                             gene_id,
@@ -210,12 +214,12 @@ for file in os.listdir():
 
                 gene_id = gene_map[g]
 
-                print(g, gene_id, pathway, pathway_id)
+                print(g, gene_id, pathway, geneset_id)
 
                 cursor.execute(
-                    f"INSERT INTO pathway_genes (pathway_id, gene_id) VALUES (?, ?);",
+                    f"INSERT INTO geneset_genes (geneset_id, gene_id) VALUES (?, ?);",
                     (
-                        pathway_id,
+                        geneset_id,
                         gene_id,
                     ),
                 )

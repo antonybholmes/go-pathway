@@ -11,7 +11,7 @@ import (
 
 type (
 	ReqOverlapParams struct {
-		Geneset  *pathway.Pathway `json:"geneset"`
+		Geneset  *pathway.GeneSet `json:"geneset"`
 		Datasets []string         `json:"datasets"`
 	}
 
@@ -83,6 +83,23 @@ func GenesRoute(c *gin.Context) {
 	web.MakeDataResp(c, "", genes)
 }
 
+func DatasetsInfoRoute(c *gin.Context) {
+
+	datasets, err := pathwaydb.AllDatasetsInfo()
+
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	web.MakeDataResp(c, "", datasets)
+}
+
+// Returns the pathways for a specific collection.
+// The collection id is expected to be in the url parameter "id",
+// e.g. /pathway/collections/1234 would return the pathways for collection with id 1234.
+// ids are uuidv7s, so they are 36 characters long and contain hyphens.
+// If the id parameter is missing or empty, a bad request response is returned.
 func CollectionRoute(c *gin.Context) {
 
 	id := c.Param("id")
@@ -91,8 +108,6 @@ func CollectionRoute(c *gin.Context) {
 		web.BadReqResp(c, errors.New("id parameter is required"))
 		return
 	}
-
-	//log.Debug().Msgf("params %v", params)
 
 	collection, err := pathwaydb.GetCollection(id)
 
@@ -104,9 +119,40 @@ func CollectionRoute(c *gin.Context) {
 	web.MakeDataResp(c, "", collection)
 }
 
-func DatasetsRoute(c *gin.Context) {
+// Returns the set of pathways belonging to the specified collections.
+// The collection ids are expected to be in the post body as a json array of
+// strings with the key "ids". ids are uuidv7s, so they are 36 characters
+// long and contain hyphens. Data is returned as a list of datasets,
+// each with a list of collections, each with a list of pathways.
+func CollectionsRoute(c *gin.Context) {
 
-	datasets, err := pathwaydb.AllDatasetsInfo()
+	params, err := web.ParseIdParamsFromPost(c)
+
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	datasets, err := pathwaydb.GetCollections(params.Ids)
+
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	web.MakeDataResp(c, "", datasets)
+}
+
+func PathwaysRoute(c *gin.Context) {
+
+	params, err := web.ParseIdParamsFromPost(c)
+
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	datasets, err := pathwaydb.GetGeneSets(params.Ids)
 
 	if err != nil {
 		c.Error(err)

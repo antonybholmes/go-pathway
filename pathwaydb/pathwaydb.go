@@ -36,16 +36,34 @@ func AllDatasetsInfo() ([]*pathway.DatasetInfo, error) {
 	return instance.AllDatasetsInfo()
 }
 
+func GetDatasets(ids []string) ([]*pathway.Dataset, error) {
+	return instance.GetDatasets(ids)
+}
+
 func GetCollection(id string) (*pathway.Collection, error) {
 	return instance.GetCollection(id)
 }
 
-func Overlap(testPathway *pathway.Pathway, datasets []string) (*pathway.PathwayOverlaps, error) {
-	cs, err := instance.GetDatasetCollections(datasets)
+func GetCollections(ids []string) ([]*pathway.Dataset, error) {
+	return instance.GetCollections(ids)
+}
+
+func GetGeneSets(ids []string) ([]*pathway.Dataset, error) {
+	return instance.GetGeneSets(ids)
+}
+
+func Overlap(testPathway *pathway.GeneSet, datasetIds []string) (*pathway.PathwayOverlaps, error) {
+	datasets, err := instance.GetDatasets(datasetIds)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return instance.Overlap(testPathway, cs)
+	collections := make([]*pathway.Collection, 0, len(datasets))
+
+	for _, dataset := range datasets {
+		collections = append(collections, dataset.Collections...)
+	}
+
+	return instance.Overlap(testPathway, collections)
 }
