@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"errors"
+
 	pathway "github.com/antonybholmes/go-pathway"
 	"github.com/antonybholmes/go-pathway/pathwaydb"
 	"github.com/antonybholmes/go-web"
@@ -9,8 +11,8 @@ import (
 
 type (
 	ReqOverlapParams struct {
-		Geneset  pathway.Geneset `json:"geneset"`
-		Datasets []string        `json:"datasets"`
+		Geneset  *pathway.Pathway `json:"geneset"`
+		Datasets []string         `json:"datasets"`
 	}
 
 	ReqDatasetParams struct {
@@ -81,26 +83,25 @@ func GenesRoute(c *gin.Context) {
 	web.MakeDataResp(c, "", genes)
 }
 
-func DatasetRoute(c *gin.Context) {
+func CollectionRoute(c *gin.Context) {
 
-	params, err := ParseDatasetParamsFromPost(c)
+	id := c.Param("id")
 
-	if err != nil {
-		c.Error(err)
+	if id == "" {
+		web.BadReqResp(c, errors.New("id parameter is required"))
 		return
 	}
 
 	//log.Debug().Msgf("params %v", params)
 
-	datasets, err := pathwaydb.MakePublicDataset(params.Organization,
-		params.Name)
+	collection, err := pathwaydb.GetCollection(id)
 
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	web.MakeDataResp(c, "", datasets)
+	web.MakeDataResp(c, "", collection)
 }
 
 func DatasetsRoute(c *gin.Context) {
@@ -124,9 +125,9 @@ func PathwayOverlapRoute(c *gin.Context) {
 		return
 	}
 
-	testPathway := params.Geneset.ToPathway()
+	//testPathway := params.Geneset.ToPathway()
 
-	tests, err := pathwaydb.Overlap(testPathway, params.Datasets)
+	tests, err := pathwaydb.Overlap(params.Geneset, params.Datasets)
 
 	if err != nil {
 		c.Error(err)

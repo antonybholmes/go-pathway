@@ -32,20 +32,20 @@ func Genes() (*sys.StringSet, error) {
 	return instance.Genes()
 }
 
-func AllDatasetsInfo() ([]*pathway.OrganizationInfo, error) {
+func AllDatasetsInfo() ([]*pathway.DatasetInfo, error) {
 	return instance.AllDatasetsInfo()
 }
 
-func MakePublicDataset(organization string, name string) (*pathway.PublicDataset, error) {
-	return instance.MakePublicDataset(organization, name)
+func GetCollection(id string) (*pathway.Collection, error) {
+	return instance.GetCollection(id)
 }
 
 func Overlap(testPathway *pathway.Pathway, datasets []string) (*pathway.PathwayOverlaps, error) {
-	ds, err := instance.MakeDatasets(datasets)
+	cs, err := instance.GetDatasetCollections(datasets)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return instance.Overlap(testPathway, ds)
+	return instance.Overlap(testPathway, cs)
 }

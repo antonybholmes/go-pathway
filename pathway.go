@@ -7,23 +7,25 @@ import (
 
 	"github.com/antonybholmes/go-basemath"
 	"github.com/antonybholmes/go-sys"
-
+	"github.com/antonybholmes/go-sys/db"
 	"github.com/antonybholmes/go-sys/log"
 )
 
-// To match MSigDB though unclear where they got this number
 const (
+	// To match MSigDB though unclear where they got this number
 	GenesInUniverse = 42577 //45956
 
-	DatasetsSql = `SELECT DISTINCT 
-		pathway.organization, 
-		pathway.dataset, 
-		COUNT(pathway.id) 
-		FROM pathway 
-		GROUP BY pathway.organization, pathway.dataset 
-		ORDER BY pathway.organization, pathway.dataset`
-
-	//  ORG_INFO_SQL = "SELECT DISTINCT pathway.organization, pathway.dataset FROM pathway ORDER BY pathway.organization, pathway.dataset"
+	DatasetsSql = `SELECT DISTINCT
+		d.public_id,
+		d.name,
+		c.public_id,
+		c.name,
+		COUNT(p.id)
+		FROM datasets d
+		JOIN collections c ON c.dataset_id = d.id
+		JOIN pathways p ON p.collection_id = c.id
+		GROUP BY c.name 
+		ORDER BY d.name, c.name`
 
 	AllPathwaysSql = `SELECT DISTINCT 
 		pathway.organization, 
@@ -34,57 +36,78 @@ const (
 		FROM pathway 
 		ORDER BY pathway.organization, pathway.dataset, pathway.name`
 
-	//   PathwaysSql = "SELECT dataset, name, genes FROM pathway WHERE dataset IN (<in>) ORDER BY name"
-	PathwaysSql = `SELECT 
-		pathway.id, 
-		pathway.name, 
-		pathway.gene_count, 
-		pathway.genes 
-		FROM pathway 
-		WHERE pathway.organization = :org AND pathway.dataset = :dataset ORDER BY pathway.name`
+	CollectionSql = `SELECT 
+		c.id, 
+		c.public_id, 
+		c.name, 
+		p.id,
+		p.public_id,
+		p.name, 
+		g.name
+		FROM collections c
+		JOIN pathways p ON p.collection_id = c.id
+		JOIN pathway_genes pg ON pg.pathway_id = p.id
+		JOIN genes g ON g.id = pg.gene_id 
+		WHERE c.id = :id
+		ORDER BY c.name, p.name, g.gene_symbol`
+
+	DatasetCollectionsSql = `SELECT
+		d.id,
+		d.public_id,
+		d.name,
+		c.id, 
+		c.public_id, 
+		c.name, 
+		p.id,
+		p.public_id,
+		p.name, 
+		g.name
+		FROM datasets d
+		JOIN collections c ON c.dataset_id = d.id
+		JOIN pathways p ON p.collection_id = c.id
+		JOIN pathway_genes pg ON pg.pathway_id = p.id
+		JOIN genes g ON g.id = pg.gene_id 
+		WHERE d.id IN <<IN>>
+		ORDER BY d.name,c.name, p.name, g.gene_symbol`
 
 	GenesSql = `SELECT DISTINCT genes.gene_symbol FROM genes ORDER BY genes.gene_symbol`
 )
 
 type (
-	PublicPathway = struct {
-		Id    string   `json:"id"`
-		Name  string   `json:"name"`
-		Genes []string `json:"genes"`
-	}
-
 	Pathway = struct {
-		Id    string           `json:"id"`
-		Genes *sys.Set[string] `json:"genes"`
-		Name  string           `json:"name"`
-	}
-
-	Geneset struct {
-		Name  string   `json:"name"`
+		db.Entity
 		Genes []string `json:"genes"`
 	}
+
+	// Pathway = struct {
+	// 	Id    string           `json:"id"`
+	// 	Genes *sys.Set[string] `json:"genes"`
+	// 	Name  string           `json:"name"`
+	// }
+
+	// Geneset struct {
+	// 	db.Entity
+	// 	Genes []string `json:"genes"`
+	// }
 
 	DatasetInfo struct {
-		Organization string `json:"organization"`
-		Name         string `json:"name"`
-		PathwayCount int    `json:"pathways"`
+		db.Entity
+		Collections []*CollectionInfo `json:"collections"`
+	}
+
+	CollectionInfo struct {
+		db.Entity
+		Count int `json:"pathways"`
+	}
+
+	Collection struct {
+		db.Entity
+		Pathways []*Pathway `json:"pathways"`
 	}
 
 	Dataset struct {
-		Organization string     `json:"organization"`
-		Name         string     `json:"name"`
-		Pathways     []*Pathway `json:"pathways"`
-	}
-
-	PublicDataset struct {
-		Organization string           `json:"organization"`
-		Name         string           `json:"name"`
-		Pathways     []*PublicPathway `json:"pathways"`
-	}
-
-	OrganizationInfo struct {
-		Name     string         `json:"name"`
-		Datasets []*DatasetInfo `json:"datasets"`
+		db.Entity
+		Pathways []*Pathway `json:"pathways"`
 	}
 
 	PathwayDB struct {
@@ -111,60 +134,63 @@ type (
 	}
 )
 
-func NewPathway(id string, name string, genes []string) *Pathway {
+// func (geneset Pathway) ToPathway() *Pathway {
+// 	p := NewPathway(sys.NanoId(), geneset.Name, geneset.Genes)
 
-	uniqueGenes := sys.NewStringSet().ListUpdate(genes)
+// 	return p
+// }
 
-	p := Pathway{
-		Id:    id,
-		Name:  name,
-		Genes: uniqueGenes, //StringSetSort(uniqueGenes),
-	}
+func NewDatasetInfo(id int, publicId string, name string) *DatasetInfo {
+	var d DatasetInfo
 
-	return &p
+	d.Id = id
+	d.PublicId = publicId
+	d.Name = name
+	d.Collections = make([]*CollectionInfo, 0, 100)
+
+	return &d
 }
 
-func (geneset Geneset) ToPathway() *Pathway {
-	p := NewPathway(sys.NanoId(), geneset.Name, geneset.Genes)
+func NewCollectionInfo(id int, publicId string, name string, count int) *CollectionInfo {
+	var c CollectionInfo
 
-	return p
+	c.Id = id
+	c.PublicId = publicId
+	c.Name = name
+	c.Count = count
+
+	return &c
 }
 
-func NewOrganizationInfo(name string) *OrganizationInfo {
-	p := OrganizationInfo{
-		Name:     name,
-		Datasets: make([]*DatasetInfo, 0, 100),
-	}
+func NewDataset(id int, publicId string, name string) *Dataset {
+	var d Dataset
 
-	return &p
+	d.Id = id
+	d.PublicId = publicId
+	d.Name = name
+	d.Pathways = make([]*Pathway, 0, 100)
+
+	return &d
 }
 
-func NewDatasetInfo(org string, name string, count int) *DatasetInfo {
-	p := DatasetInfo{
-		Organization: org,
-		Name:         name,
-		PathwayCount: count,
-	}
+func NewCollection(id int, publicId string, name string) *Collection {
+	var c Collection
 
-	return &p
+	c.Id = id
+	c.PublicId = publicId
+	c.Name = name
+	c.Pathways = make([]*Pathway, 0, 100)
+
+	return &c
 }
 
-func NewPublicDataset(org string, name string) *PublicDataset {
-	p := PublicDataset{
-		Organization: org,
-		Name:         name,
-		Pathways:     make([]*PublicPathway, 0, 100),
-	}
+func NewPathway(id int, publicId string, name string) *Pathway {
+	var p Pathway
 
-	return &p
-}
-
-func NewDataset(org string, name string) *Dataset {
-	p := Dataset{
-		Organization: org,
-		Name:         name,
-		Pathways:     make([]*Pathway, 0, 100),
-	}
+	p.Id = id
+	p.PublicId = publicId
+	p.Name = name
+	p.Genes = make([]string, 0, 100)
 
 	return &p
 }
@@ -177,7 +203,7 @@ func NewDataset(org string, name string) *Dataset {
 
 func NewPathwayDB(file string) *PathwayDB {
 
-	db := sys.Must(sql.Open(sys.Sqlite3DB, file))
+	db := sys.Must(sql.Open(db.Sqlite3DB, file))
 
 	// defer db.Close()
 
@@ -263,7 +289,7 @@ func (pdb *PathwayDB) Genes() (*sys.StringSet, error) {
 	return genes, nil //pathwaydb.genes.Keys()
 }
 
-func (pdb *PathwayDB) AllDatasetsInfo() ([]*OrganizationInfo, error) {
+func (pdb *PathwayDB) AllDatasetsInfo() ([]*DatasetInfo, error) {
 
 	rows, err := pdb.db.Query(DatasetsSql)
 
@@ -273,37 +299,41 @@ func (pdb *PathwayDB) AllDatasetsInfo() ([]*OrganizationInfo, error) {
 
 	defer rows.Close()
 
-	ret := make([]*OrganizationInfo, 0, 10)
+	ret := make([]*DatasetInfo, 0, 10)
 
-	var org string
+	var datasetId int
+	var datasetPublicId string
 	var dataset string
-	var pathwayCount int
-	currentOrg := ""
-	orgIndex := -1
+	var collectionId int
+	var collectionPublicId string
+	var collection string
+	var count int // pathway count in collection
+	currentDataset := ""
+	datasetIndex := -1
 
 	for rows.Next() {
-		err := rows.Scan(&org, &dataset, &pathwayCount)
+		err := rows.Scan(&datasetId, &datasetPublicId, &dataset, &collectionId, &collectionPublicId, &collection, &count)
 
 		if err != nil {
 			return nil, err
 		}
 
-		if org != currentOrg {
-			ret = append(ret, NewOrganizationInfo(org))
-			currentOrg = org
-			orgIndex++
+		if dataset != currentDataset {
+			ret = append(ret, NewDatasetInfo(datasetId, datasetPublicId, dataset))
+			currentDataset = dataset
+			datasetIndex++
 		}
 
-		ds := NewDatasetInfo(org, dataset, pathwayCount)
+		cs := NewCollectionInfo(collectionId, collectionPublicId, collection, count)
 
-		ret[orgIndex].Datasets = append(ret[orgIndex].Datasets, ds)
+		ret[datasetIndex].Collections = append(ret[datasetIndex].Collections, cs)
 
 	}
 
 	return ret, nil
 }
 
-func (pdb *PathwayDB) MakePublicDataset(org string, name string) (*PublicDataset, error) {
+func (pdb *PathwayDB) GetCollection(id string) (*Collection, error) {
 
 	// log.Debug().Msgf("%v", fmt.Sprintf("'%s'", strings.Join(datasets, "','")))
 
@@ -315,7 +345,7 @@ func (pdb *PathwayDB) MakePublicDataset(org string, name string) (*PublicDataset
 	// 	inRHS[i] = "?"
 	// }
 
-	rows, err := pdb.db.Query(PathwaysSql, sql.Named("org", org), sql.Named("dataset", name))
+	rows, err := pdb.db.Query(CollectionSql, sql.Named("id", id))
 
 	if err != nil {
 		log.Debug().Msgf("e2 %s", err)
@@ -324,29 +354,42 @@ func (pdb *PathwayDB) MakePublicDataset(org string, name string) (*PublicDataset
 
 	defer rows.Close()
 
-	dataset := NewPublicDataset(org, name)
+	var collection *Collection = nil
 
-	var id string
-	var genes string
-	var geneCount int
+	var collectionId int
+	var collectionPublicId string
+	var collectionName string
+	var pathwayId int
+	var pathwayPublicId string
+	var pathwayName string
+	var gene string
 
 	for rows.Next() {
 
 		//gene.Taxonomy = tax
 
 		err := rows.Scan(
-			&id,
-			&name,
-			&geneCount,
-			&genes)
+			&collectionId,
+			&collectionPublicId,
+			&collectionName,
+			&pathwayId,
+			&pathwayPublicId,
+			&pathwayName,
+			&gene)
 
 		if err != nil {
 			return nil, err
 		}
 
-		pathway := PublicPathway{Id: id, Name: name, Genes: strings.Split(genes, ",")}
+		if collection == nil {
+			collection = NewCollection(collectionId, collectionPublicId, collectionName)
+		}
 
-		dataset.Pathways = append(dataset.Pathways, &pathway)
+		pathway := NewPathway(pathwayId, pathwayPublicId, pathwayName)
+
+		pathway.Genes = append(pathway.Genes, gene)
+
+		collection.Pathways = append(collection.Pathways, pathway)
 	}
 
 	//sql := strings.Replace(PATHWAY_SQL, "<in>", strings.Join(inRHS, ","), 1)
@@ -355,119 +398,147 @@ func (pdb *PathwayDB) MakePublicDataset(org string, name string) (*PublicDataset
 
 	//log.Debug().Msgf("%v", ret)
 
-	return dataset, nil
+	return collection, nil
 }
 
-func (pdb *PathwayDB) MakeDataset(org string, name string) (*Dataset, error) {
+// func (pdb *PathwayDB) MakeDataset(org string, name string) (*Collection, error) {
 
-	// log.Debug().Msgf("%v", fmt.Sprintf("'%s'", strings.Join(datasets, "','")))
+// 	// log.Debug().Msgf("%v", fmt.Sprintf("'%s'", strings.Join(datasets, "','")))
 
-	// args := make([]interface{}, len(datasets))
-	// inRHS := make([]string, len(datasets))
+// 	// args := make([]interface{}, len(datasets))
+// 	// inRHS := make([]string, len(datasets))
 
-	// for i := range inRHS {
-	// 	args[i] = datasets[i]
-	// 	inRHS[i] = "?"
-	// }
+// 	// for i := range inRHS {
+// 	// 	args[i] = datasets[i]
+// 	// 	inRHS[i] = "?"
+// 	// }
 
-	rows, err := pdb.db.Query(PathwaysSql, sql.Named("org", org), sql.Named("dataset", name))
+// 	rows, err := pdb.db.Query(PathwaysSql, sql.Named("org", org), sql.Named("dataset", name))
 
-	if err != nil {
-		log.Debug().Msgf("e2 %s", err)
-		return nil, err
-	}
+// 	if err != nil {
+// 		log.Debug().Msgf("e2 %s", err)
+// 		return nil, err
+// 	}
 
-	defer rows.Close()
+// 	defer rows.Close()
 
-	dataset := NewDataset(org, name)
+// 	dataset := NewDataset(org, name)
 
-	var publicId string
-	var genes string
-	var geneCount int
+// 	var publicId string
+// 	var genes string
+// 	var geneCount int
 
-	for rows.Next() {
+// 	for rows.Next() {
 
-		//gene.Taxonomy = tax
+// 		//gene.Taxonomy = tax
 
-		err := rows.Scan(
-			&publicId,
-			&name,
-			&geneCount,
-			&genes)
+// 		err := rows.Scan(
+// 			&publicId,
+// 			&name,
+// 			&geneCount,
+// 			&genes)
 
-		if err != nil {
-			return nil, err
-		}
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		pathway := NewPathway(publicId, name, strings.Split(genes, ","))
+// 		pathway := NewPathway(publicId, name, strings.Split(genes, ","))
 
-		dataset.Pathways = append(dataset.Pathways, pathway)
-	}
+// 		dataset.Pathways = append(dataset.Pathways, pathway)
+// 	}
 
-	//sql := strings.Replace(PATHWAY_SQL, "<in>", strings.Join(inRHS, ","), 1)
+// 	//sql := strings.Replace(PATHWAY_SQL, "<in>", strings.Join(inRHS, ","), 1)
 
-	//log.Debug().Msgf("%v %v", sql, args)
+// 	//log.Debug().Msgf("%v %v", sql, args)
 
-	//log.Debug().Msgf("%v", ret)
+// 	//log.Debug().Msgf("%v", ret)
 
-	return dataset, nil
-}
+// 	return dataset, nil
+// }
 
 // Given the names of datasets, produce objects containing all the
 // pathways of those datasets
-func (pdb *PathwayDB) MakeDatasets(datasets []string) ([]*Dataset, error) {
+func (pdb *PathwayDB) GetDatasetCollections(datasets []string) ([]*Collection, error) {
 
-	// log.Debug().Msgf("%v", fmt.Sprintf("'%s'", strings.Join(datasets, "','")))
+	ret := make([]*Collection, 0, len(datasets))
 
-	// args := make([]interface{}, len(datasets))
-	// inRHS := make([]string, len(datasets))
+	sql := DatasetCollectionsSql
 
-	// for i := range inRHS {
-	// 	args[i] = datasets[i]
-	// 	inRHS[i] = "?"
-	// }
+	args := make([]any, len(datasets))
 
-	ret := make([]*Dataset, 0, len(datasets))
+	sql = db.MakeInSql(sql, "<<IN>>", datasets, &args)
 
-	for _, ds := range datasets {
-		tokens := strings.SplitN(ds, ":", 2)
+	rows, err := pdb.db.Query(sql, args...)
 
-		org := tokens[0]
-		name := tokens[1]
+	if err != nil {
+		log.Debug().Msgf("e2 %s", err)
+		return nil, err
+	}
 
-		dataset, err := pdb.MakeDataset(org, name)
+	defer rows.Close()
+
+	var collection *Collection = nil
+
+	var datasetId int
+	var datasetPublicId string
+	var datasetName string
+	var collectionId int
+	var collectionPublicId string
+	var collectionName string
+	var pathwayId int
+	var pathwayPublicId string
+	var pathwayName string
+	var gene string
+
+	for rows.Next() {
+
+		//gene.Taxonomy = tax
+
+		err := rows.Scan(
+			&datasetId,
+			&datasetPublicId,
+			&datasetName,
+			&collectionId,
+			&collectionPublicId,
+			&collectionName,
+			&pathwayId,
+			&pathwayPublicId,
+			&pathwayName,
+			&gene)
 
 		if err != nil {
-			log.Debug().Msgf("e %s", err)
 			return nil, err
 		}
 
-		ret = append(ret, dataset)
+		if collection == nil || collection.Id != collectionId {
+			collection = NewCollection(collectionId, collectionPublicId, collectionName)
+			ret = append(ret, collection)
+		}
+
+		pathway := NewPathway(pathwayId, pathwayPublicId, pathwayName)
+
+		pathway.Genes = append(pathway.Genes, gene)
+
+		collection.Pathways = append(collection.Pathways, pathway)
 	}
-
-	//sql := strings.Replace(PATHWAY_SQL, "<in>", strings.Join(inRHS, ","), 1)
-
-	//log.Debug().Msgf("%v %v", sql, args)
-
-	//log.Debug().Msgf("%v", ret)
 
 	return ret, nil
 }
 
-func (pdb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dataset) (*PathwayOverlaps, error) {
+func (pdb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, collections []*Collection) (*PathwayOverlaps, error) {
 	numTests := 0
 
-	datasetNames := make([]string, 0, len(datasets))
+	collectionNames := make([]string, 0, len(collections))
 
 	genes := sys.NewStringSet()
 
-	for _, dataset := range datasets {
-		numTests += len(dataset.Pathways)
-		datasetNames = append(datasetNames, dataset.Name)
+	for _, collection := range collections {
+		numTests += len(collection.Pathways)
+		collectionNames = append(collectionNames, collection.Name)
 
 		// all the genes in the datasets we are interested in
-		for _, pathway := range dataset.Pathways {
-			genes.Update(pathway.Genes)
+		for _, pathway := range collection.Pathways {
+			genes.ListUpdate(pathway.Genes)
 		}
 	}
 
@@ -481,7 +552,7 @@ func (pdb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dataset) 
 	// see which genes in our test pathway we can use
 	validGenes := sys.NewStringSet()
 
-	for _, gene := range geneset.Genes.Keys() {
+	for _, gene := range geneset.Genes {
 		// if genes.Has(gene) {
 		// 	usableGenes.Add(gene)
 		// }
@@ -494,7 +565,7 @@ func (pdb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dataset) 
 
 	ret := PathwayOverlaps{
 		Geneset:    geneset.Name,
-		Datasets:   datasetNames,
+		Datasets:   collectionNames,
 		DatasetIdx: make([]int, numTests),
 		Pathway:    make([]string, numTests),
 		//ValidGeneCount:       len(*usableGenes),
@@ -514,8 +585,8 @@ func (pdb *PathwayDB) NewPathwayOverlaps(geneset *Pathway, datasets []*Dataset) 
 	return &ret, nil
 }
 
-func (pdb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*PathwayOverlaps, error) {
-	ret, err := pdb.NewPathwayOverlaps(geneset, datasets)
+func (pdb *PathwayDB) Overlap(geneset *Pathway, collections []*Collection) (*PathwayOverlaps, error) {
+	ret, err := pdb.NewPathwayOverlaps(geneset, collections)
 
 	if err != nil {
 		return nil, err
@@ -524,11 +595,11 @@ func (pdb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*PathwayOv
 	n := ret.ValidGenes.Len()
 
 	gi := 0
-	for di, dataset := range datasets {
-		for _, pathway := range dataset.Pathways {
-			K := pathway.Genes.Len()
+	for ci, collection := range collections {
+		for _, pathway := range collection.Pathways {
+			K := len(pathway.Genes)
 
-			overlappingGenesInPathway := ret.ValidGenes.Intersect(pathway.Genes)
+			overlappingGenesInPathway := ret.ValidGenes.Intersect(sys.NewStringSet().ListUpdate(pathway.Genes))
 
 			//overlappingGenes := make([]string, 0, overlappingGenesInPathway.Len())
 
@@ -548,7 +619,7 @@ func (pdb *PathwayDB) Overlap(geneset *Pathway, datasets []*Dataset) (*PathwayOv
 			}
 
 			//ret.Name[gi] = geneset.Name
-			ret.DatasetIdx[gi] = di
+			ret.DatasetIdx[gi] = ci
 			ret.Pathway[gi] = pathway.Name
 			//ret.TestGenes[gi] = n
 			ret.PathwayGeneCounts[gi] = K
