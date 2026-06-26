@@ -9,8 +9,8 @@ replace github.com/antonybholmes/go-sys => ../go-sys
 replace github.com/antonybholmes/go-web => ../go-web
 
 require (
-	github.com/antonybholmes/go-basemath v0.0.0-20260603221554-d647819bbf21
-	github.com/antonybholmes/go-sys v0.0.0-20260609172735-8ea2a7623e43
+	github.com/antonybholmes/go-basemath v0.0.0-20260616152945-9dcd1ed04536
+	github.com/antonybholmes/go-sys v0.0.0-20260616152946-01b9b0d3a79b
 	github.com/gin-gonic/gin v1.12.0
 )
 
