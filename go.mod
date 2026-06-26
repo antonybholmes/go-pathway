@@ -2,8 +2,6 @@ module github.com/antonybholmes/go-pathway
 
 go 1.26
 
-// replace github.com/antonybholmes/go-basemath => ../go-basemath
-
 // replace github.com/antonybholmes/go-sys => ../go-sys
 
 // replace github.com/antonybholmes/go-web => ../go-web

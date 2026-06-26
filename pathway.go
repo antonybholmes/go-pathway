@@ -5,10 +5,10 @@ import (
 	"math"
 	"strings"
 
-	"github.com/antonybholmes/go-basemath"
 	"github.com/antonybholmes/go-sys"
 	"github.com/antonybholmes/go-sys/db"
 	"github.com/antonybholmes/go-sys/log"
+	basemath "github.com/antonybholmes/go-sys/math"
 )
 
 const (
