@@ -289,7 +289,6 @@ func (pdb *PathwayDB) GenesList() ([]string, error) {
 	var gene string
 
 	for rows.Next() {
-
 		err := rows.Scan(&gene)
 
 		if err != nil {
@@ -297,6 +296,10 @@ func (pdb *PathwayDB) GenesList() ([]string, error) {
 		}
 
 		genes = append(genes, gene)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return genes, nil //pathwaydb.genes.Keys()
@@ -324,6 +327,10 @@ func (pdb *PathwayDB) Genes() (*sys.StringSet, error) {
 		}
 
 		genes.Add(gene)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return genes, nil //pathwaydb.genes.Keys()
@@ -367,7 +374,10 @@ func (pdb *PathwayDB) AllDatasetsInfo() ([]*DatasetInfo, error) {
 		cs := NewCollectionInfo(collectionId, collectionPublicId, collection, count)
 
 		ret[datasetIndex].Collections = append(ret[datasetIndex].Collections, cs)
+	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return ret, nil
@@ -437,6 +447,10 @@ func (pdb *PathwayDB) GetCollection(id string) (*Collection, error) {
 	//log.Debug().Msgf("%v %v", sql, args)
 
 	//log.Debug().Msgf("%v", ret)
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return collection, nil
 }
@@ -525,7 +539,10 @@ func (pdb *PathwayDB) getGeneSets(sql string, ids []string) ([]*Dataset, error) 
 		}
 
 		geneSet.Genes = append(geneSet.Genes, gene)
+	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return ret, nil

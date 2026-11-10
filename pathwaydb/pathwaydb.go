@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	pathway "github.com/antonybholmes/go-pathway"
-	"github.com/antonybholmes/go-sys"
 )
 
 var (
@@ -20,36 +19,8 @@ func InitPathwayDB(file string) *pathway.PathwayDB {
 	return instance
 }
 
-func GetInstance() *pathway.PathwayDB {
+func Instance() *pathway.PathwayDB {
 	return instance
-}
-
-func GeneList() ([]string, error) {
-	return instance.GenesList()
-}
-
-func Genes() (*sys.StringSet, error) {
-	return instance.Genes()
-}
-
-func AllDatasetsInfo() ([]*pathway.DatasetInfo, error) {
-	return instance.AllDatasetsInfo()
-}
-
-func GetDatasets(ids []string) ([]*pathway.Dataset, error) {
-	return instance.GetDatasets(ids)
-}
-
-func GetCollection(id string) (*pathway.Collection, error) {
-	return instance.GetCollection(id)
-}
-
-func GetCollections(ids []string) ([]*pathway.Dataset, error) {
-	return instance.GetCollections(ids)
-}
-
-func GetGeneSets(ids []string) ([]*pathway.Dataset, error) {
-	return instance.GetGeneSets(ids)
 }
 
 func Overlap(testPathway *pathway.GeneSet, datasetIds []string) (*pathway.PathwayOverlaps, error) {

@@ -73,7 +73,7 @@ func ParseDatasetParamsFromPost(c *gin.Context) (*ReqDatasetParams, error) {
 // }
 
 func GenesRoute(c *gin.Context) {
-	genes, err := pathwaydb.GeneList()
+	genes, err := pathwaydb.Instance().GenesList()
 
 	if err != nil {
 		c.Error(err)
@@ -85,7 +85,7 @@ func GenesRoute(c *gin.Context) {
 
 func DatasetsInfoRoute(c *gin.Context) {
 
-	datasets, err := pathwaydb.AllDatasetsInfo()
+	datasets, err := pathwaydb.Instance().AllDatasetsInfo()
 
 	if err != nil {
 		c.Error(err)
@@ -109,7 +109,7 @@ func CollectionRoute(c *gin.Context) {
 		return
 	}
 
-	collection, err := pathwaydb.GetCollection(id)
+	collection, err := pathwaydb.Instance().GetCollection(id)
 
 	if err != nil {
 		c.Error(err)
@@ -133,7 +133,7 @@ func CollectionsRoute(c *gin.Context) {
 		return
 	}
 
-	datasets, err := pathwaydb.GetCollections(params.Ids)
+	datasets, err := pathwaydb.Instance().GetCollections(params.Ids)
 
 	if err != nil {
 		c.Error(err)
@@ -152,7 +152,7 @@ func PathwaysRoute(c *gin.Context) {
 		return
 	}
 
-	datasets, err := pathwaydb.GetGeneSets(params.Ids)
+	datasets, err := pathwaydb.Instance().GetGeneSets(params.Ids)
 
 	if err != nil {
 		c.Error(err)
