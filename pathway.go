@@ -156,19 +156,19 @@ type (
 	}
 
 	PathwayOverlaps struct {
-		ValidGenes        *sys.StringSet `json:"-"`
-		ValidGeneList     []string       `json:"validGenes"`
-		Genes             *sys.StringSet `json:"-"`
-		Geneset           string         `json:"geneset"`
-		PathwayGeneCounts []int          `json:"pathwayGeneCounts"`
-		Pathway           []string       `json:"pathway"`
-		OverlapGeneCounts []int          `json:"overlapGeneCounts"`
-		KDivK             []float64      `json:"kdivK"`
-		PValues           []float64      `json:"pvalues"`
-		QValues           []float64      `json:"qvalues"`
-		OverlapGeneList   []string       `json:"overlapGeneList"`
-		DatasetIdx        []int          `json:"datasetIdx"`
-		Datasets          []string       `json:"datasets"`
+		ValidGenes        sys.Set[string] `json:"-"`
+		ValidGeneList     []string        `json:"validGenes"`
+		Genes             sys.Set[string] `json:"-"`
+		Geneset           string          `json:"geneset"`
+		PathwayGeneCounts []int           `json:"pathwayGeneCounts"`
+		Pathway           []string        `json:"pathway"`
+		OverlapGeneCounts []int           `json:"overlapGeneCounts"`
+		KDivK             []float64       `json:"kdivK"`
+		PValues           []float64       `json:"pvalues"`
+		QValues           []float64       `json:"qvalues"`
+		OverlapGeneList   []string        `json:"overlapGeneList"`
+		DatasetIdx        []int           `json:"datasetIdx"`
+		Datasets          []string        `json:"datasets"`
 		//ValidGeneCount       int              `json:"-"`
 		GenesInUniverseCount int `json:"genesInUniverseCount"`
 	}
@@ -305,8 +305,8 @@ func (pdb *PathwayDB) GenesList() ([]string, error) {
 	return genes, nil //pathwaydb.genes.Keys()
 }
 
-func (pdb *PathwayDB) Genes() (*sys.StringSet, error) {
-	genes := sys.NewStringSet()
+func (pdb *PathwayDB) Genes() (sys.Set[string], error) {
+	genes := sys.NewSet[string]()
 
 	rows, err := pdb.db.Query(GenesSql)
 
@@ -553,7 +553,7 @@ func (pdb *PathwayDB) NewPathwayOverlaps(geneset *GeneSet, collections []*Collec
 
 	collectionNames := make([]string, 0, len(collections))
 
-	genes := sys.NewStringSet()
+	genes := sys.NewSet[string]()
 
 	for _, collection := range collections {
 		numTests += len(collection.GeneSets)
@@ -573,7 +573,7 @@ func (pdb *PathwayDB) NewPathwayOverlaps(geneset *GeneSet, collections []*Collec
 	}
 
 	// see which genes in our test pathway we can use
-	validGenes := sys.NewStringSet()
+	validGenes := sys.NewSet[string]()
 
 	for _, gene := range geneset.Genes {
 		// if genes.Has(gene) {
@@ -622,7 +622,7 @@ func (pdb *PathwayDB) Overlap(geneset *GeneSet, collections []*Collection) (*Pat
 		for _, geneSet := range collection.GeneSets {
 			K := len(geneSet.Genes)
 
-			overlappingGenesInPathway := ret.ValidGenes.Intersect(sys.NewStringSet().ListUpdate(geneSet.Genes))
+			overlappingGenesInPathway := ret.ValidGenes.Intersect(sys.NewSet[string](geneSet.Genes...))
 
 			//overlappingGenes := make([]string, 0, overlappingGenesInPathway.Len())
 
