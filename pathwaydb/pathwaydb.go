@@ -30,7 +30,7 @@ func Overlap(testPathway *pathway.GeneSet, datasetIds []string) (*pathway.Pathwa
 		return nil, err
 	}
 
-	collections := make([]*pathway.Collection, 0, len(datasets))
+	collections := make([]*pathway.PathwayCollection, 0, len(datasets))
 
 	for _, dataset := range datasets {
 		collections = append(collections, dataset.Collections...)
